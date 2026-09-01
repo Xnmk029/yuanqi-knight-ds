@@ -19,19 +19,32 @@ N.inputT = 0;
 N.snapInterval = 0.066;
 N.inputInterval = 0.033;
 N.onStatus = null;    /* 状态回调 (msg) */
+N.logs = [];          /* 联机日志（游戏内可见，最多 100 条） */
+N.log = function(type, msg){
+  var entry = { t: new Date().toLocaleTimeString(), type: type, msg: msg };
+  N.logs.push(entry);
+  if(N.logs.length > 100) N.logs.shift();
+  try{ console.log('[联机]', entry.t, type, msg); }catch(e){}
+  if(N.onLog) N.onLog(entry);
+};
 
 function peerOpts(serverAddr){
   var opts={};
   if(serverAddr){
-    var parts=String(serverAddr).split(':');
+    var addr=String(serverAddr).trim();
+    var secure=false;
+    /* 支持协议前缀：wss:// 走 TLS（SakuraFrp 国内节点自动 HTTPS 必需），ws:// 明文 */
+    if(addr.indexOf('wss://')===0){ secure=true; addr=addr.slice(6); }
+    else if(addr.indexOf('ws://')===0){ addr=addr.slice(5); }
+    var parts=addr.split(':');
     opts.host=parts[0];
     opts.port=parseInt(parts[1],10)||9000;
     opts.path='/yqks';
-    opts.secure=false;
+    opts.secure=secure;
   }
   return opts;
 }
-function status(msg){ if(N.onStatus) N.onStatus(msg); }
+function status(msg){ N.log('状态', msg); if(N.onStatus) N.onStatus(msg); }
 
 /* ---------- 主机：创建房间 ---------- */
 N.host = function(g, roomCode, serverAddr, cb){
@@ -43,18 +56,31 @@ N.host = function(g, roomCode, serverAddr, cb){
   try{
     N.peer=new Peer('yqks-'+roomCode, peerOpts(serverAddr));
   }catch(e){ N.state='off'; if(cb) cb({ok:false, error:'Peer 初始化失败'}); return; }
-  N.peer.on('open', function(id){ status('房间已创建：'+roomCode); if(cb) cb({ok:true, id:id}); });
+  N.peer.on('open', function(id){ N.log('info', 'Peer 已就绪，房间码：'+roomCode); status('房间已创建：'+roomCode); if(cb) cb({ok:true, id:id}); });
   N.peer.on('error', function(err){
+    N.log('error', 'Peer 错误：'+(err.type||'unknown')+' '+(err.message||''));
     status('信令错误：'+(err.type||err.message));
     if(cb) cb({ok:false, error:err.type||err.message});
   });
   N.peer.on('connection', function(conn){
     N.conn=conn;
+    N.log('info', '收到客机连接');
     conn.on('data', function(data){ N.onData(g, data); });
-    conn.on('close', function(){ N.onDisconnect(); });
+    conn.on('close', function(){ N.log('warn', '客机连接关闭'); N.onDisconnect(); });
+    conn.on('error', function(e){ N.log('error', '数据通道错误：'+(e&&e.message||e)); });
     status('客机已加入！');
     if(cb) cb({ok:true, connected:true});
   });
+  /* 记录底层 WebSocket 状态 */
+  N.peer.on('socket', function(sock){
+    N.log('info', 'WebSocket 已建立（信令通道）');
+    if(sock && sock.on){
+      sock.on('error', function(e){ N.log('error', 'WebSocket 错误：'+(e&&e.message||e)); });
+      sock.on('close', function(){ N.log('warn', 'WebSocket 关闭'); });
+    }
+  });
+  N.peer.on('disconnected', function(){ N.log('warn', 'Peer 与信令服务器断开'); });
+  N.peer.on('close', function(){ N.log('warn', 'Peer 已销毁'); });
 };
 
 /* ---------- 客机：加入房间 ---------- */
@@ -69,22 +95,35 @@ N.join = function(g, roomCode, serverAddr, heroId, cb){
     N.peer=new Peer(undefined, peerOpts(serverAddr));
   }catch(e){ N.state='off'; if(cb) cb({ok:false, error:'Peer 初始化失败'}); return; }
   N.peer.on('open', function(){
+    N.log('info', 'Peer 已就绪，连接房间 '+roomCode+'...');
     status('正在连接房间 '+roomCode+'...');
     try{
       N.conn=N.peer.connect('yqks-'+roomCode, {reliable:true});
-    }catch(e){ N.state='off'; if(cb) cb({ok:false, error:'连接失败'}); return; }
+    }catch(e){ N.log('error', '连接失败：'+e.message); N.state='off'; if(cb) cb({ok:false, error:'连接失败'}); return; }
     N.conn.on('open', function(){
+      N.log('info', '数据通道已建立，发送握手');
       N.send({t:'hello', hero:heroId});
       status('已连接，等待主机开局...');
       if(cb) cb({ok:true});
     });
     N.conn.on('data', function(data){ N.onData(g, data); });
-    N.conn.on('close', function(){ N.onDisconnect(); });
+    N.conn.on('close', function(){ N.log('warn', '数据通道关闭'); N.onDisconnect(); });
+    N.conn.on('error', function(e){ N.log('error', '数据通道错误：'+(e&&e.message||e)); });
   });
   N.peer.on('error', function(err){
+    N.log('error', 'Peer 错误：'+(err.type||'unknown')+' '+(err.message||''));
     status('信令错误：'+(err.type||err.message));
     if(cb) cb({ok:false, error:err.type||err.message});
   });
+  N.peer.on('socket', function(sock){
+    N.log('info', 'WebSocket 已建立（信令通道）');
+    if(sock && sock.on){
+      sock.on('error', function(e){ N.log('error', 'WebSocket 错误：'+(e&&e.message||e)); });
+      sock.on('close', function(){ N.log('warn', 'WebSocket 关闭'); });
+    }
+  });
+  N.peer.on('disconnected', function(){ N.log('warn', 'Peer 与信令服务器断开'); });
+  N.peer.on('close', function(){ N.log('warn', 'Peer 已销毁'); });
 };
 
 N.send = function(msg){
@@ -142,6 +181,7 @@ N.makeNetInput = function(data){
 };
 N.onDisconnect = function(){
   var was=N.state;
+  N.log('warn', '联机断开（原状态：'+was+'）');
   N.state='off';
   N.conn=null;
   if(N.g){

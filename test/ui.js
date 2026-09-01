@@ -62,7 +62,7 @@ global.setTimeout=(fn)=>{ try{ fn(); }catch(e){ errors.push('setTimeout: '+e.sta
 global.AudioContext=undefined; global.webkitAudioContext=undefined;
 
 const errors=[];
-for(const f of ['util.js','save.js','audio.js','art.js','weapons.js','enemies.js','dungeon.js','entities.js','game.js','lobby.js','main.js']){
+for(const f of ['util.js','save.js','devconsole.js','audio.js','art.js','weapons.js','enemies.js','dungeon.js','entities.js','game.js','lobby.js','main.js']){
   try{ vm.runInThisContext(fs.readFileSync(path.join(ROOT,'js',f),'utf8'),{filename:f}); }
   catch(e){ console.error('加载失败 '+f+': '+e.stack); process.exit(1); }
 }

@@ -71,21 +71,20 @@ npm start          # 或双击 start-server.ps1
 
 **症状**：游戏内创建/加入房间报"信令错误：network"，公网地址 TCP 能连通但 WebSocket 握手返回 501。
 
-**根因**：当前 SakuraFrp 隧道是 **HTTP 类型**。HTTP 隧道按域名/路径路由，对 WebSocket 升级请求返回 `501 Not Implemented`（响应头 `server: SakuraFrp`），peerjs 将其归类为 network 错误。
+**根因（2026-09-01 实测确认）**：SakuraFrp **国内节点对明文 HTTP 流量强制拦截**（机房合规要求）。501 页面原文："您正试图使用 HTTP 协议访问此隧道……请使用 HTTPS 访问"。WebSocket 升级请求属于 HTTP 协议，被节点拦截层返回 501。
 
-**修复**（SakuraFrp 启动器 GUI 操作）：
+**修复**（两步）：
 
-1. 在启动器隧道列表中找到当前隧道，**停用/删除**它
-2. 新建隧道，类型选择 **TCP**：
-   - 本地 IP：`127.0.0.1`
-   - 本地端口：`9000`
-   - 远程端口：自定义（如 `40582` 或新端口）
-3. 启动隧道，记下新的公网地址
-4. 游戏内联机石碑的服务器地址改为新公网地址
+1. **隧道启用"自动 HTTPS"**（SakuraFrp 启动器 → 编辑隧道 → 找到"自动 HTTPS"选项并启用，建议高级配置中 `auto_https_mode = passthrough` 避免 frpc 改写 WebSocket 流量）→ 重启隧道。frpc 会生成自签证书并用 TLS 接受对外连接，脱壳后明文连接本地 9000（信令服务器无需改动）
+2. **游戏内联机地址加 `wss://` 前缀**：`wss://frp-off.com:44330`（net.js 已支持协议前缀自动识别）
 
-**验证**：`cd server && node test-public.js 公网地址:远程端口`，输出"✔ 信令握手成功"即隧道正常；若仍报 501 说明隧道仍是 HTTP 类型。
+**浏览器证书提示**：自动 HTTPS 使用 frpc 自签证书，浏览器会拦截 wss 连接。首次使用前请访问 `https://frp-off.com:44330` 并点击"继续访问"接受证书（或把证书安装到系统信任库）。
 
-## 附：信令服务器管理
+**验证**：`cd server && node test-public.js wss://frp-off.com:44330`，输出"✔ 信令握手成功"即隧道正常。
+
+**参考**：SakuraFrp 官方文档《配置 frpc 的自动 HTTPS 功能》(https://doc.natfrp.com/frpc/auto-https.html) —— 速查表："应用的 HTTP API（国内节点）✔️必须"。
+
+### 附：信令服务器管理
 
 ```bash
 cd server

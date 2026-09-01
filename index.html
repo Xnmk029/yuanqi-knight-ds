@@ -26,6 +26,7 @@
         <button class="btn" data-act="load" id="btn-load" style="display:none">读 取 存 档</button>
         <button class="btn" data-act="codex">图 鉴</button>
         <button class="btn" data-act="help">操 作 说 明</button>
+        <button class="btn" data-act="devconsole">开发控制台</button>
         <button class="btn" data-act="opts">设 置</button>
       </div>
       <div class="corner-hint">键盘鼠标 / 触屏 均可游玩 · 建议全屏</div>
@@ -113,6 +114,7 @@
         <div class="opt"><span>房间码</span><input type="text" id="net-room" placeholder="6 位房间码" maxlength="6" style="width:120px;background:#1a2140;border:1px solid #3a4772;color:#fff;padding:6px 10px;border-radius:8px"></div>
       </div>
       <div class="preview" id="net-status" style="min-width:min(460px,92%)">未连接</div>
+      <div class="net-log" id="net-logs" style="min-width:min(460px,92%)"></div>
       <div class="row">
         <button class="btn" data-act="back">返回</button>
         <button class="btn primary" data-act="net-host">创建房间（主机）</button>
@@ -196,10 +198,28 @@
   </div>
 
   <div id="toast"></div>
+
+  <div id="devconsole" style="display:none">
+    <div class="dc-head">
+      <span class="dc-title">开发控制台</span>
+      <span class="dc-filters">
+        <button class="dc-filter on" data-f="all">全部</button>
+        <button class="dc-filter" data-f="info">信息</button>
+        <button class="dc-filter" data-f="warn">警告</button>
+        <button class="dc-filter" data-f="error">错误</button>
+      </span>
+      <span class="dc-actions">
+        <button class="dc-btn" id="dc-clear">清空</button>
+        <button class="dc-btn" id="dc-close">关闭</button>
+      </span>
+    </div>
+    <div class="dc-body" id="dc-logs"></div>
+  </div>
 </div>
 
 <script src="js/util.js"></script>
 <script src="js/save.js"></script>
+<script src="js/devconsole.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/art.js"></script>
 <script src="js/weapons.js"></script>

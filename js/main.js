@@ -347,6 +347,22 @@ function buildParts(){
   });
 }
 
+/* ---------- 联机日志渲染 ---------- */
+function renderNetLog(entry){
+  var box=$('net-logs');
+  if(!box) return;
+  var div=document.createElement('div');
+  div.className='lg lg-'+(entry.type==='error'?'error':(entry.type==='warn'?'warn':'info'));
+  var t=document.createElement('span');
+  t.className='lg-time'; t.textContent=entry.t;
+  div.appendChild(t);
+  div.appendChild(document.createTextNode(entry.msg));
+  box.appendChild(div);
+  box.scrollTop=box.scrollHeight;
+  /* 保留最近 60 条 */
+  while(box.children.length>60) box.removeChild(box.firstChild);
+}
+
 /* ---------- 存档槽位 ---------- */
 function fmtTime(t){
   var d=new Date(t);
@@ -541,6 +557,7 @@ function bindButtons(){
       var room=($('net-room').value.trim()||genRoom()).toUpperCase();
       $('net-room').value=room;
       G.Net.onStatus=function(msg){ $('net-status').textContent=msg; };
+      G.Net.onLog=function(entry){ renderNetLog(entry); };
       G.Net.host(game, room, addr, function(res){
         if(res.ok && res.connected){ toastDom('客机已加入，去传送门开局吧'); }
         else if(!res.ok){ toastDom('创建失败：'+res.error); }
@@ -551,6 +568,7 @@ function bindButtons(){
       var room=($('net-room').value.trim()||'').toUpperCase();
       if(!room){ toastDom('请输入房间码'); return; }
       G.Net.onStatus=function(msg){ $('net-status').textContent=msg; };
+      G.Net.onLog=function(entry){ renderNetLog(entry); };
       G.Net.join(game, room, addr, selHero, function(res){
         if(!res.ok) toastDom('加入失败：'+res.error);
       });
@@ -561,6 +579,7 @@ function bindButtons(){
     else if(act==='disasm-install'){
       if(game.installModulesTo(disasmSel)){ buildDisasm(); }
     }
+    else if(act==='devconsole'){ G.DevConsole.open(); }
     else if(act==='net-leave'){
       G.Net.leave();
       game.netMode=null;
@@ -596,6 +615,11 @@ function loop(ts){
   var dt=Math.min(0.05,(ts-last)/1000)||0;
   last=ts;
   var IN=G.Input;
+  /* 开发控制台快捷键：反引号或 ~ */
+  if(IN.hit('`') || IN.hit('~')){
+    G.DevConsole.toggle();
+    IN.end();
+  }
   if(game.state==='playing'){
     if(IN.hit('escape','p')){ game.state='paused'; buildPauseStats(); show('scr-pause'); }
     if(IN.hit('m')){ var on=G.Audio.toggle(); toastDom(on?'音效开启':'音效静音'); }
@@ -675,6 +699,21 @@ function boot(){
   game.onWin = function(){ G.Audio.music.stop(); gameOver(true); };
   bindButtons();
   buildHeroes();
+  /* 开发控制台 */
+  G.DevConsole.init();
+  G.DevConsole.onToggle = function(vis){
+    if(game) game.panelOpen = vis;
+  };
+  var dcClose=document.getElementById('dc-close');
+  if(dcClose) dcClose.onclick=function(){ G.DevConsole.close(); };
+  var dcClear=document.getElementById('dc-clear');
+  if(dcClear) dcClear.onclick=function(){ G.DevConsole.clear(); };
+  var dcFilters=document.querySelectorAll('#devconsole .dc-filter');
+  for(var fi=0;fi<dcFilters.length;fi++){
+    (function(btn){
+      btn.onclick=function(){ G.DevConsole.setFilter(btn.getAttribute('data-f')); };
+    })(dcFilters[fi]);
+  }
   /* 存档入口：有自动存档显示"继续冒险"，有手动存档显示"读取存档" */
   if(G.Save.hasAuto()) $('btn-continue').style.display='';
   var anyManual=false;
