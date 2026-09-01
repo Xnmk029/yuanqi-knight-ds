@@ -78,6 +78,17 @@ L.update = function(g, dt){
   var w=g.screenToWorld(IN.mx, IN.my);
   p.aim=U.ang(p.x,p.y,w.x,w.y);
   p.face=Math.cos(p.aim)>=0?1:-1;
+  if(g.guest && !g.guest.dead && g.guest.netInput){
+    var gin=g.guest.netInput;
+    var gmv=gin.moveVec();
+    g.guest.vx=U.damp(g.guest.vx||0, gmv.x*sp, 12, dt);
+    g.guest.vy=U.damp(g.guest.vy||0, gmv.y*sp, 12, dt);
+    g.guest.x=U.clamp((g.guest.x||p.x)+g.guest.vx*dt, 30, 610);
+    g.guest.y=U.clamp((g.guest.y||p.y)+g.guest.vy*dt, 30, 340);
+    g.guest.moving=Math.min(1,Math.sqrt(gmv.x*gmv.x+gmv.y*gmv.y));
+    if(gin.aim!==undefined) g.guest.aim=gin.aim;
+    g.guest.face=Math.cos(g.guest.aim||0)>=0?1:-1;
+  }
   /* 木桩攻击测试 */
   if(IN.down && p.weapons.length){
     g.lobbyDummyT-=dt;
@@ -123,8 +134,16 @@ L.update = function(g, dt){
     g.lobbyHint={x:best.x,y:best.y-30,text:best.label,color:'#ffe07a'};
     if(IN.hit('e','f')){
       if(best.key==='portal'){
-        g.start(G.Heroes[g.lobbyHeroIdx].id);
-        if(G.Net && G.Net.state==='host') g.netMode='host';
+        if(G.Net && G.Net.state==='client'){
+          g.toast('等待主机开局...');
+        } else {
+          var keep=G.Net && G.Net.state==='host' && g.guest;
+          g.start(G.Heroes[g.lobbyHeroIdx].id, {keepGuest:!!keep});
+          if(G.Net && G.Net.state==='host'){
+            g.netMode='host';
+            G.Net.sendWelcome(g);
+          }
+        }
       }
       else if(best.key==='heroes'){ g.lobbyHeroIdx=(g.lobbyHeroIdx+1)%G.Heroes.length; G.Audio.sfx.click(); }
       else if(best.key==='forge'){ if(g.onForge) g.onForge(); }
@@ -234,6 +253,9 @@ L.draw = function(g, ctx){
   /* 玩家 */
   var p=g.player;
   Art.hero(ctx,p.x,p.y,10,p.hero,{t:t,face:p.face,moving:p.moving});
+  if(g.guest && !g.guest.dead){
+    Art.hero(ctx,g.guest.x,g.guest.y,10,g.guest.hero,{t:t,face:g.guest.face||1,moving:g.guest.moving||0});
+  }
   /* 提示 */
   if(g.lobbyHint){
     ctx.save();

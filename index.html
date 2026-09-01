@@ -108,9 +108,9 @@
 
     <div class="screen" id="scr-net">
       <h2 class="scr-title">P2P 联 机</h2>
-      <div class="sub-title">需先启动本地信令服务器并用 SakuraFrp 映射公网</div>
+      <div class="sub-title">先启动 server 信令（端口 9000）。局域网填 127.0.0.1:9000；跨网用 SakuraFrp TCP 隧道（本地必须 9000，国内节点加 wss://）</div>
       <div class="opts" style="width:min(460px,92%)">
-        <div class="opt"><span>信令服务器地址</span><input type="text" id="net-server" placeholder="127.0.0.1:9000 或 公网地址:端口" style="width:220px;background:#1a2140;border:1px solid #3a4772;color:#fff;padding:6px 10px;border-radius:8px"></div>
+        <div class="opt"><span>信令服务器地址</span><input type="text" id="net-server" placeholder="127.0.0.1:9000 或 wss://公网地址:端口" style="width:220px;background:#1a2140;border:1px solid #3a4772;color:#fff;padding:6px 10px;border-radius:8px"></div>
         <div class="opt"><span>房间码</span><input type="text" id="net-room" placeholder="6 位房间码" maxlength="6" style="width:120px;background:#1a2140;border:1px solid #3a4772;color:#fff;padding:6px 10px;border-radius:8px"></div>
       </div>
       <div class="preview" id="net-status" style="min-width:min(460px,92%)">未连接</div>

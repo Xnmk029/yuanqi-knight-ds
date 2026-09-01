@@ -57,7 +57,11 @@ Game.prototype.resize = function(){
 };
 
 /* ================= 开局 ================= */
-Game.prototype.start = function(heroId){
+Game.prototype.start = function(heroId, opts){
+  opts=opts||{};
+  var keepGuest=!!opts.keepGuest && this.guest && !this.guest.dead;
+  var guestHero=keepGuest && this.guest.hero ? this.guest.hero : null;
+  var guestNetInput=keepGuest ? this.guest.netInput : null;
   var hero=null;
   for(var i=0;i<G.Heroes.length;i++) if(G.Heroes[i].id===heroId) hero=G.Heroes[i];
   hero = hero||G.Heroes[0];
@@ -67,6 +71,14 @@ Game.prototype.start = function(heroId){
   this.stats={kills:0,coins:0,time:0,floor:1,dmg:0};
   this.floorNum=1; this.loop=0;
   this.state='playing';
+  if(keepGuest && guestHero){
+    var guest=new G.Player(guestHero, this);
+    guest.netId=1;
+    guest.netInput=guestNetInput||null;
+    this.guest=guest;
+    this.players=[this.player, guest];
+    this.netMode='host';
+  }
   this.newFloor(1);
   G.Audio.init(); G.Audio.resume();
   G.Audio.music.start(this.biome);
@@ -82,6 +94,7 @@ Game.prototype.newFloor = function(n, seed){
   this.minor = (n-1)%2+1;
   this.biome = (this.major-1)%6;
   this.loop = Math.floor((this.major-1)/6);
+  if(seed===undefined || seed===null) seed=(Math.random()*0x7fffffff)|0;
   this.map = Dn.generate(n, this.biome, {seed:seed, difficulty:this.difficulty||0, minor:this.minor});
   this.tileset = Art.buildTileset(this.biome, Dn.TS);
   this.B = Art.BIOMES[this.biome];
@@ -90,6 +103,10 @@ Game.prototype.newFloor = function(n, seed){
   this.props = this.map.props.slice();
   var p=this.player;
   p.x=this.map.startX; p.y=this.map.startY; p.vx=p.vy=0;
+  if(this.guest && !this.guest.dead){
+    this.guest.x=this.map.startX+40; this.guest.y=this.map.startY; this.guest.vx=this.guest.vy=0;
+    this.players=[this.player, this.guest];
+  }
   this.cam.x=p.x-LW/2; this.cam.y=p.y-LH/2;
   this.curRoom=this.map.startRoom;
   this.curRoom.visited=true;
@@ -635,7 +652,11 @@ Game.prototype.openChest = function(c){
 Game.prototype.update = function(dt){
   var IN=G.Input;
   this.frame++;
-  if(this.state==='lobby'){ G.Lobby.update(this, dt); return; }
+  if(this.state==='lobby'){
+    G.Lobby.update(this, dt);
+    if(G.Net && (G.Net.state==='host' || G.Net.state==='client')) G.Net.update(this, dt);
+    return;
+  }
   if(this.netMode==='client'){
     /* 客机：实体由快照驱动，只更新表现层 */
     this.t+=dt; this.stats.time+=dt;
@@ -1186,7 +1207,7 @@ Game.prototype.drawHUD = function(){
     c.fillStyle='rgba(0,0,0,0.5)'; U.roundRect(c,gx,gy-6,160,8,4); c.fill();
     c.fillStyle='#6ee27f'; U.roundRect(c,gx,gy-6,Math.max(3,160*Math.max(0,this.guest.hp/this.guest.maxHp)),8,4); c.fill();
     c.fillStyle='#c8d4ea'; c.font='bold 10px sans-serif'; c.textAlign='left';
-    c.fillText('P2 '+this.guest.hero.name, gx, gy+10);
+    c.fillText((this.netMode==='client'?'P1 ':'P2 ')+this.guest.hero.name, gx, gy+10);
   }
   /* BOSS 血条 */
   if(this.bossActive && !this.bossActive.dead){

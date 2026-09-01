@@ -1,12 +1,13 @@
 /* 元气骑士·深渊回响 —— P2P 联机信令服务器（自研版，兼容 peerjs 1.5.4）
    功能：
-   - HTTP  GET /yqks/peerjs/id?ts=..&version=..  -> 200 + 纯文本随机 id（客机 retrieveId 用）
-   - WS    /yqks/peerjs?id=..&token=..&key=..   -> OPEN + OFFER/ANSWER/CANDIDATE/LEAVE 转发
+   - HTTP  GET /yqks/peerjs/id?ts=..&version=..  -> 200 + 纯文本随机 id（兼容 retrieveId）
+   - HTTP  GET /health                           -> JSON {ok, port, peers}
+   - WS    /yqks/peerjs?id=..&token=..&key=..    -> OPEN + OFFER/ANSWER/CANDIDATE/LEAVE 转发
    - 心跳 HEARTBEAT 忽略（不刷日志）
-   - 所有日志实时输出到控制台（cmd 窗口）
-   启动：npm install && npm start   （默认端口 9000，配合 SakuraFrp TCP 隧道） */
+   启动：npm install && npm start   （默认端口 9000，配合 SakuraFrp TCP 隧道）
+   注意：游戏数据走 WebRTC DataChannel，本进程只做信令，不是 TURN 中继。 */
 const http = require('http');
-const WebSocketServer = require('ws').Server;  /* ws 1.x API */
+const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 9000;
 const KEY = 'peerjs';
@@ -21,31 +22,69 @@ function genId(){
   for(var i=0;i<10;i++) s += chars[Math.floor(Math.random()*chars.length)];
   return s;
 }
+function cors(res){
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+function pathnameOf(url){
+  var q = (url || '').split('?')[0];
+  return q || '/';
+}
 
-/* ---------- HTTP：获取随机 id ---------- */
 const server = http.createServer(function(req, res){
-  var url = req.url || '';
-  if(url.indexOf('/yqks/peerjs/id') === 0){
-    var id = genId();
-    log('HTTP 分配 id: ' + id + '  (' + req.socket.remoteAddress + ')');
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end(id);
-  } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not Found');
+  var url = req.url || '/';
+  var path = pathnameOf(url);
+  cors(res);
+  if(req.method === 'OPTIONS'){
+    res.writeHead(204);
+    res.end();
+    return;
   }
+  if(path === '/yqks/peerjs/id' || path === '/yqks/peerjs/id/'){
+    var id = genId();
+    log('HTTP 分配 id: ' + id + '  (' + (req.socket && req.socket.remoteAddress) + ')');
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end(id);
+    return;
+  }
+  if(path === '/health' || path === '/yqks/health'){
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({
+      ok: true,
+      port: Number(PORT),
+      peers: Object.keys(peers).length,
+      ids: Object.keys(peers)
+    }));
+    return;
+  }
+  if(path === '/' || path === '/yqks' || path === '/yqks/' || path === '/yqks/peerjs' || path === '/yqks/peerjs/'){
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('yqks signaling ok\nGET /health\nGET /yqks/peerjs/id\nWS  /yqks/peerjs?id=&token=&key=peerjs\n');
+    return;
+  }
+  res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('Not Found');
 });
 
-/* ---------- WebSocket：信令转发 ---------- */
-const wss = new WebSocketServer({ server: server, path: '/yqks/peerjs' });
+const wss = new WebSocketServer({ server: server });
 
-wss.on('connection', function(socket){
-  var req = socket.upgradeReq;  /* ws 1.x：upgradeReq 挂在 socket 上 */
-  var u = new URL(req.url, 'http://localhost');
+wss.on('connection', function(socket, req){
+  var u;
+  try{ u = new URL(req.url || '/', 'http://localhost'); }
+  catch(e){
+    socket.close();
+    return;
+  }
+  if(u.pathname !== '/yqks/peerjs' && u.pathname !== '/yqks/peerjs/'){
+    log('拒绝非信令路径: ' + u.pathname);
+    socket.close();
+    return;
+  }
   var id = u.searchParams.get('id');
   var token = u.searchParams.get('token');
   var key = u.searchParams.get('key');
-  var ip = req.socket.remoteAddress;
+  var ip = req.socket && req.socket.remoteAddress;
 
   log('连接: ' + id + '  (' + ip + ')');
   if(!id || !token || !key){
@@ -69,20 +108,13 @@ wss.on('connection', function(socket){
 
   socket.on('message', function(data){
     var msg;
-    try{ msg = JSON.parse(data); }catch(e){ return; }
+    try{ msg = JSON.parse(data.toString()); }catch(e){ return; }
     if(!msg || !msg.type) return;
-    if(msg.type === 'HEARTBEAT'){
-      /* 心跳：忽略（peerjs 1.5.4 不检测响应） */
-      return;
-    }
-    if(msg.type === 'OPEN'){
-      /* 客户端注册确认 */
-      return;
-    }
+    if(msg.type === 'HEARTBEAT' || msg.type === 'OPEN') return;
     if(['OFFER','ANSWER','CANDIDATE','LEAVE'].indexOf(msg.type) >= 0){
       var dst = msg.dst;
       var target = peers[dst];
-      if(target && target.socket.readyState === 1){
+      if(target && target.socket && target.socket.readyState === 1){
         target.socket.send(JSON.stringify({ type: msg.type, src: id, dst: dst, payload: msg.payload }));
         log('转发 ' + msg.type + ': ' + id + ' -> ' + dst);
       } else {
@@ -104,12 +136,13 @@ wss.on('connection', function(socket){
   });
 });
 
-server.listen(PORT, function(){
+server.listen(PORT, '0.0.0.0', function(){
   console.log('==============================================');
   console.log('  元气骑士 P2P 联机信令服务器（自研版）');
   console.log('  本地端口: ' + PORT);
   console.log('  兼容 peerjs 1.5.4（HTTP /id + WebSocket 转发）');
-  console.log('  配合 SakuraFrp TCP 隧道映射到公网');
+  console.log('  健康检查: http://127.0.0.1:' + PORT + '/health');
+  console.log('  配合 SakuraFrp TCP 隧道映射到公网（本地端口必须是 ' + PORT + '）');
   console.log('  按 Ctrl+C 停止');
   console.log('==============================================');
 });

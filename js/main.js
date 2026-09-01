@@ -556,21 +556,21 @@ function bindButtons(){
       var addr=$('net-server').value.trim()||'127.0.0.1:9000';
       var room=($('net-room').value.trim()||genRoom()).toUpperCase();
       $('net-room').value=room;
-      G.Net.onStatus=function(msg){ $('net-status').textContent=msg; };
-      G.Net.onLog=function(entry){ renderNetLog(entry); };
+      bindNetUi();
       G.Net.host(game, room, addr, function(res){
         if(res.ok && res.connected){ toastDom('客机已加入，去传送门开局吧'); }
-        else if(!res.ok){ toastDom('创建失败：'+res.error); }
+        else if(res.ok){ toastDom('房间已创建，等待客机加入'); }
+        else { toastDom('创建失败：'+res.error); }
       });
     }
     else if(act==='net-join'){
       var addr=$('net-server').value.trim()||'127.0.0.1:9000';
       var room=($('net-room').value.trim()||'').toUpperCase();
       if(!room){ toastDom('请输入房间码'); return; }
-      G.Net.onStatus=function(msg){ $('net-status').textContent=msg; };
-      G.Net.onLog=function(entry){ renderNetLog(entry); };
+      bindNetUi();
       G.Net.join(game, room, addr, selHero, function(res){
-        if(!res.ok) toastDom('加入失败：'+res.error);
+        if(res.ok) toastDom('已连接，等待主机开局');
+        else toastDom('加入失败：'+res.error);
       });
     }
     else if(act==='disasm-do'){
@@ -606,6 +606,19 @@ function genRoom(){
   var s='';
   for(var i=0;i<6;i++) s+=chars[Math.floor(Math.random()*chars.length)];
   return s;
+}
+function closeNetPanel(){
+  fromGamePanel=false;
+  if(game) game.panelOpen=false;
+  if(cur==='scr-net') show(null);
+}
+function bindNetUi(){
+  G.Net.onStatus=function(msg){ if($('net-status')) $('net-status').textContent=msg; };
+  G.Net.onLog=function(entry){ renderNetLog(entry); };
+  G.Net.onReady=function(info){
+    if(info && info.role==='host' && info.phase==='lobby') toastDom('客机已加入，去传送门开局吧');
+    if(info && info.phase==='playing') closeNetPanel();
+  };
 }
 
 /* ---------- 主循环 ---------- */

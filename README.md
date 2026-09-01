@@ -204,11 +204,12 @@ yuanqi-knight/
 6 种配件 × 3 级：精准瞄准镜/扩容弹夹/穿甲弹头/能量核心/爆裂模块/元素模块。每把武器 2 个配件槽，地牢 `gunsmith` 武器商房出售，大厅锻造台可改装。配件随武器快照存档。
 
 ### P2P 联机（SakuraFrp + WebRTC）
-- `server/` 目录：本地信令服务器（`npm install && npm start`，端口 9000）
-- 用 **SakuraFrp 创建 TCP 隧道**映射 9000 端口到公网
-- 大厅"联机石碑"：主机创建房间（6 位房间码），客机输入服务器地址 + 房间码加入
-- 主机权威同步：客机发输入（30Hz），主机广播快照（15Hz），客机快照渲染
-- 引用开源库 `peerjs`（本地 `js/vendor/peerjs.min.js`），鲁棒性优先：心跳、断线提示、状态回调
+- `server/` 目录：自研 PeerJS 兼容信令（`npm install && npm start`，端口 9000，依赖 `ws`）
+- 客机使用本地随机 Peer ID；大厅只登记客机，主机进传送门创建地图后再发 welcome
+- 快照约定 `p[0]=主机 p[1]=客机`，开局 `start({keepGuest:true})` 保留第二名玩家
+- 用 **SakuraFrp TCP 隧道**映射 **本地 9000** 到公网（不要填 25565）；国内节点地址加 `wss://`
+- 对称 NAT 需自备 TURN（`localStorage.yqks_turn`），TCP 信令隧道不能代替中继
+- 详细步骤见 `docs/sakurafrp-setup.md`；协议测试：`node test/net.js`
 
 ### 修复
 - **T0**：带属性（附魔/强化/配件）的武器掉落地面后属性不再丢失（`W.snapshot` 全链路保留）
@@ -244,13 +245,10 @@ yuanqi-knight/
 - 地形障碍物（木桶/箱子/雕像/火把/旗帜等）**恢复显示**（此前被误路由到交互物绘制分支而隐形）
 - URL 参数 `?floor=N` 修复（此前正则错误导致失效）
 
-### 内网穿透联机环境（已配置）
-- 信令服务器已在后台运行（端口 9000，server/start-server.ps1 管理）
-- 详细配置指南见 docs/sakurafrp-setup.md：SakuraFrp 创建 TCP 隧道（本地 9000 → 公网自定义端口）→ 游戏大厅联机石碑填公网地址
-- 自检：cd server && node test-handshake.js（单客户端）/ node test-relay.js（双客户端信令转发）
-
-### 联机方案
-`docs/p2p-multiplayer.md` 已起草 WebRTC P2P 联机方案（主机权威 + 快照同步 + 预测插值），本期仅方案文档。
+### 内网穿透联机环境
+- 启动：`cd server && npm start` 或 `start-server.ps1`（端口 9000，`GET /health` 自检）
+- 详细配置见 docs/sakurafrp-setup.md：TCP 隧道本地端口必须 9000 → 游戏大厅联机石碑填公网地址
+- 自检：`node test/net.js`（协议） / `cd server && node _verify_new.js`（信令 /id + 转发）
 
 ## 开发者：自动化验证
 
