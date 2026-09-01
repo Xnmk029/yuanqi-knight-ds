@@ -663,6 +663,50 @@ W.detachPart = function(inst, pid){
   }
   return true;
 };
+/* ============================== 拆解机（模块化拆解/重组） ==============================
+   拆解：武器 → 射弹类型 / 武器属性 / 攻击方式 三个独立部件
+   重组：部件安装到任意武器（覆盖对应字段） */
+W.SHAPE_FIELDS = ['shape','color','r','life','sizeGrow','spin','drag','count','spread'];
+W.STAT_FIELDS = ['dmg','rate','spd','energy','pierce','bounce','homing','aoe','kb','freeze','burn','poison','shock','auto','recoil'];
+W.MODE_FIELDS = ['type','trait','melee','beamWidth','beamDps','beamEnergy','overheatRate','overheatCd',
+  'charge','chargeFullDmg','chargeFullPierce','chargeFullCrit','chargeFullFn','magSize','reloadTime','onFire'];
+
+W.disassemble = function(inst){
+  var shape={}, stats={}, mode={};
+  for(var i=0;i<W.SHAPE_FIELDS.length;i++){
+    var f=W.SHAPE_FIELDS[i];
+    if(inst[f]!==undefined) shape[f]=inst[f];
+  }
+  for(var j=0;j<W.STAT_FIELDS.length;j++){
+    var f2=W.STAT_FIELDS[j];
+    if(inst[f2]!==undefined) stats[f2]=inst[f2];
+  }
+  for(var k=0;k<W.MODE_FIELDS.length;k++){
+    var f3=W.MODE_FIELDS[k];
+    if(inst[f3]!==undefined) mode[f3]=inst[f3];
+  }
+  return {shape:shape, stats:stats, mode:mode, name:inst.name, rarity:inst.rarity};
+};
+W.installModule = function(target, module){
+  var out=Object.create(target);
+  for(var k in module) out[k]=module[k];
+  return out;
+};
+W.installModules = function(target, shape, stats, mode){
+  var out=W.installModule(target, shape||{});
+  out=W.installModule(out, stats||{});
+  out=W.installModule(out, mode||{});
+  /* 清除旧攻击方式残留：按新 type 遮蔽无关字段（type 是主开关） */
+  if(mode && mode.type){
+    var t=mode.type;
+    if(t!=='melee') out.melee=undefined;
+    if(t!=='laser'){ out.beamWidth=undefined; out.beamDps=undefined; out.beamEnergy=undefined; out.overheatRate=undefined; out.overheatCd=undefined; }
+    if(t!=='laser' && mode.trait!=='charge'){ out.charge=undefined; out.chargeFullDmg=undefined; out.chargeFullPierce=undefined; out.chargeFullCrit=undefined; out.chargeFullFn=undefined; }
+    if(mode.trait!=='magazine'){ out.magSize=undefined; out.reloadTime=undefined; }
+  }
+  out.modded=true;
+  return out;
+};
 W.snapshot = function(inst){
   /* 武器实例快照：保留实例全部自有属性（附魔/强化/配件/状态），用于掉落/存档。
      沿原型链找到注册 def 作为新原型，避免多次快照形成嵌套原型链。 */

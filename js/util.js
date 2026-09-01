@@ -7,8 +7,8 @@ var TAU = Math.PI * 2;
 U.TAU = TAU;
 U.clamp = function(v,a,b){ return v<a?a:(v>b?b:v); };
 U.lerp  = function(a,b,t){ return a+(b-a)*t; };
-U.rand  = function(a,b){ if(b===undefined){ b=a; a=0; } return a+Math.random()*(b-a); };
-U.randi = function(a,b){ if(b===undefined){ b=a; a=0; } return Math.floor(a+Math.random()*(b-a)); };
+U.rand  = function(a,b){ if(a===undefined) return Math.random(); if(b===undefined){ b=a; a=0; } return a+Math.random()*(b-a); };
+U.randi = function(a,b){ if(a===undefined) return Math.floor(Math.random()*1000000); if(b===undefined){ b=a; a=0; } return Math.floor(a+Math.random()*(b-a)); };
 U.pick  = function(a){ return a[Math.floor(Math.random()*a.length)]; };
 U.chance= function(p){ return Math.random()<p; };
 U.sign  = function(v){ return v<0?-1:(v>0?1:0); };
@@ -89,8 +89,8 @@ U.mulberry32 = function(seed){
 U.rng = function(seed){
   var r = U.mulberry32(seed);
   return {
-    rand: function(a,b){ if(b===undefined){ b=a; a=0; } return a+r()*(b-a); },
-    randi: function(a,b){ if(b===undefined){ b=a; a=0; } return Math.floor(a+r()*(b-a)); },
+    rand: function(a,b){ if(a===undefined) return r(); if(b===undefined){ b=a; a=0; } return a+r()*(b-a); },
+    randi: function(a,b){ if(a===undefined) return Math.floor(r()*1000000); if(b===undefined){ b=a; a=0; } return Math.floor(a+r()*(b-a)); },
     pick: function(arr){ return arr[Math.floor(r()*arr.length)]; },
     chance: function(p){ return r()<p; },
     shuffle: function(arr){

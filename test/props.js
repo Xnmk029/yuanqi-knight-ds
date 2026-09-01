@@ -136,6 +136,55 @@ console.log('=== 4. floor URL 参数 ===');
   check(!!m && m[1]==='3', 'floor=3 可被解析');
 }
 
+
+/* ---------- 5. 拾取物磁吸不飞出屏幕 ---------- */
+console.log('=== 5. 拾取物磁吸边界 ===');
+{
+  const g=new G.Game();
+  g.init(); g.start('knight');
+  g.onUpgrade=(p)=>{ g.applyBuff(p[0]); };
+  g.onGameOver=()=>{}; g.onWin=()=>{};
+  const p=g.player; p.maxHp=1e6; p.hp=1e6; p.maxEnergy=1e6; p.energy=1e6;
+  /* 玩家在地图边缘，钱在磁吸范围内 */
+  p.x=100; p.y=100;
+  const coin=new G.Pickup(p.x+30, p.y, 'coin', 5, g);
+  g.pickups=[coin];
+  const IN=G.Input;
+  /* 模拟玩家翻滚远离（朝地图外方向高速移动） */
+  for(let i=0;i<120;i++){
+    IN.keys={}; IN.hits={};
+    if(i<60){ IN.keys['a']=true; } /* 向左远离 */
+    g.update(1/60);
+    IN.end();
+  }
+  const m=g.map;
+  check(coin.x>=8 && coin.x<=m.w-8 && coin.y>=8 && coin.y<=m.h-8,
+    '钱未飞出地图 ('+coin.x.toFixed(0)+','+coin.y.toFixed(0)+') 地图 '+m.w+'x'+m.h);
+  check(coin.mag===0 || U.dist(coin.x,coin.y,p.x,p.y)<160, '磁吸已取消或钱在玩家附近');
+}
+/* ---------- 6. 磁吸速度不为负 ---------- */
+console.log('=== 6. 磁吸速度下限 ===');
+{
+  const g=new G.Game();
+  g.init(); g.start('knight');
+  g.onUpgrade=(p)=>{ g.applyBuff(p[0]); };
+  g.onGameOver=()=>{}; g.onWin=()=>{};
+  const p=g.player; p.maxHp=1e6; p.hp=1e6; p.maxEnergy=1e6; p.energy=1e6;
+  p.x=500; p.y=500;
+  const coin=new G.Pickup(p.x+120, p.y, 'coin', 5, g); /* d=120 > 97 */
+  g.pickups=[coin];
+  coin.mag=1;
+  coin.vx=0; coin.vy=0; /* 清除随机初始速度 */
+  const IN=G.Input;
+  IN.keys={}; IN.hits={}; IN.down=false;
+  g.update(1/60); IN.end();
+  const spd=Math.sqrt(coin.vx*coin.vx+coin.vy*coin.vy);
+  check(spd<=560, '磁吸速度不超过上限 ('+spd.toFixed(0)+')');
+  /* 速度方向应指向玩家（不反向） */
+  const dot=coin.vx*(p.x-coin.x)+coin.vy*(p.y-coin.y);
+  check(dot>=0, '速度方向指向玩家（不反向推开）');
+}
+
 if(errors){
   console.log('\n===== 发现 '+errors+' 个失败 =====');
   process.exit(1);

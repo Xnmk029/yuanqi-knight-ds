@@ -781,6 +781,29 @@ Art.prop = function(ctx,p,t,B){
   ctx.restore();
 };
 
+/* ================= 拆解机 ================= */
+Art.disassembler = function(ctx,x,y,t){
+  ctx.save(); ctx.translate(x,y);
+  Art.shadow(ctx,0,9,15,5,0.34);
+  ctx.fillStyle='#3a4468'; ctx.beginPath(); rrect(ctx,-15,-10,30,20,4); ctx.fill();
+  ctx.fillStyle='#232a44'; ctx.beginPath(); rrect(ctx,-11,-6,22,12,3); ctx.fill();
+  /* 传送带 */
+  ctx.fillStyle='#2a3048';
+  ctx.beginPath(); rrect(ctx,-13,4,26,4,2); ctx.fill();
+  ctx.fillStyle='#5ee0ff';
+  for(var i=-1;i<=1;i++){
+    ctx.beginPath(); ctx.arc(i*8,6,1.6,0,TAU); ctx.fill();
+  }
+  /* 分解光束 */
+  var pulse=0.5+Math.sin(t*5)*0.2;
+  Art.glowDot(ctx,0,-8,14*pulse,'#8ef0ff',0.5);
+  ctx.strokeStyle=U.alpha('#8ef0ff',0.7); ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.moveTo(-6,-12); ctx.lineTo(6,-12); ctx.moveTo(-6,-4); ctx.lineTo(6,-4); ctx.stroke();
+  ctx.fillStyle='#8ef0ff';
+  ctx.beginPath(); ctx.arc(0,-8,2.4,0,TAU); ctx.fill();
+  ctx.restore();
+};
+
 /* ================= 大厅设施 ================= */
 Art.gacha = function(ctx,x,y,t){
   ctx.save(); ctx.translate(x,y);

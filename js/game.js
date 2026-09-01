@@ -107,6 +107,10 @@ Game.prototype.buildRoomContent = function(){
       this.addChest(r.cx, r.cy, 2+Math.floor(Math.random()*2)+ (this.floorNum>3?1:0));
     } else if(r.type==='shop'){
       this.makeShop(r);
+    } else if(r.type==='weaponshop'){
+      this.makeWeaponShop(r);
+    } else if(r.type==='consumableshop'){
+      this.makeConsumableShop(r);
     } else if(r.type==='shrine'){
       this.addShrine(r.cx, r.cy);
     } else if(r.type==='forge'){
@@ -129,8 +133,10 @@ Game.prototype.buildRoomContent = function(){
       this.makeArmory(r);
     } else if(r.type==='vault'){
       this.makeVault(r);
-    } else if(r.type==='gunsmith'){
+    } else if(r.type==='gunsmith' || r.type==='partshop'){
       this.makeGunsmith(r);
+    } else if(r.type==='disassembler'){
+      this.makeDisassembler(r);
     }
   }
 };
@@ -158,11 +164,24 @@ Game.prototype.addShrine = function(x,y){
   return s;
 };
 Game.prototype.makeShop = function(r){
-  var self=this;
-  var m=this.map;
+  /* 混合商店（简单/普通难度默认） */
   var kinds=['weapon','heal','armor','key'];
   U.shuffle(kinds);
-  for(var i=0;i<3;i++){
+  this.makeShopItems(r, kinds.slice(0,3));
+};
+Game.prototype.makeWeaponShop = function(r){
+  /* 武器商店：只卖武器 */
+  this.makeShopItems(r, ['weapon','weapon','weapon']);
+};
+Game.prototype.makeConsumableShop = function(r){
+  /* 消耗品商店：药水/护甲/钥匙 */
+  var kinds=['heal','armor','key'];
+  U.shuffle(kinds);
+  this.makeShopItems(r, kinds);
+};
+Game.prototype.makeShopItems = function(r, kinds){
+  var self=this;
+  for(var i=0;i<kinds.length;i++){
     var kind=kinds[i];
     var x=r.cx + (i-1)*58, y=r.cy+6;
     var price, def=null, label;
@@ -315,6 +334,40 @@ Game.prototype.makeArmory = function(r){
   var def=Wp.roll(this.floorNum+1, 0.5);
   this.pickups.push(new G.Pickup(r.cx, r.cy, 'weapon', def, this));
   this.inter.push({ kind:'armory', x:r.cx, y:r.cy-30, r:14, label:'武器架', act:null });
+};
+Game.prototype.makeDisassembler = function(r){
+  var self=this;
+  this.inter.push({ kind:'disassembler', x:r.cx, y:r.cy, r:16, label:'拆解机（E）',
+    act:function(){ if(self.onDisasm) self.onDisasm(); } });
+};
+Game.prototype.disassembleWeapon = function(idx){
+  var p=this.player;
+  var w=p.weapons[idx];
+  if(!w) return false;
+  var parts=Wp.disassemble(w);
+  p.weapons.splice(idx,1);
+  if(p.wi>=p.weapons.length) p.wi=Math.max(0,p.weapons.length-1);
+  p.modules=p.modules||{shape:null,stats:null,mode:null};
+  p.modules.shape=parts.shape;
+  p.modules.stats=parts.stats;
+  p.modules.mode=parts.mode;
+  this.toast('拆解 '+w.name+'：获得射弹/属性/攻击方式部件');
+  this.burst(p.x,p.y,20,{color:'#8ef0ff',spd:150,life:0.6});
+  G.Audio.sfx.power();
+  return true;
+};
+Game.prototype.installModulesTo = function(idx){
+  var p=this.player;
+  var w=p.weapons[idx];
+  if(!w) return false;
+  var mods=p.modules||{};
+  if(!mods.shape && !mods.stats && !mods.mode) return false;
+  var newW=Wp.installModules(w, mods.shape, mods.stats, mods.mode);
+  p.weapons[idx]=newW;
+  this.toast('改装完成：'+newW.name);
+  this.burst(p.x,p.y,20,{color:'#ffd45e',spd:150,life:0.6});
+  G.Audio.sfx.power();
+  return true;
 };
 Game.prototype.makeGunsmith = function(r){
   var self=this;
@@ -856,6 +909,7 @@ Game.prototype.drawInter = function(ctx,o,t){
   else if(o.kind==='rest') Art.rest(ctx,o.x,o.y,t,o.used);
   else if(o.kind==='armory') Art.armory(ctx,o.x,o.y,t);
   else if(o.kind==='gunsmith') Art.smith(ctx,o.x,o.y,t);
+  else if(o.kind==='disassembler') Art.disassembler(ctx,o.x,o.y,t);
   else if(o.kind==='shopkeeper'){
     Art.creature(ctx,o.x,o.y,14,o.look,{t:t,face:1,moving:0});
     ctx.save();

@@ -1163,15 +1163,23 @@ Pickup.prototype.update=function(dt,g){
   var d=U.dist(this.x,this.y,p.x,p.y);
   var auto=(this.kind==='coin'||this.kind==='heart'||this.kind==='energy'||this.kind==='key');
   if(auto && d<80){ this.mag=1; }
+  /* 玩家翻滚/冲刺远离时取消磁吸，避免追着旧位置飞出屏幕 */
+  if(this.mag && d>160){ this.mag=0; }
   if(this.mag){
     var a=U.ang(this.x,this.y,p.x,p.y);
-    var sp=Math.min(560, 120+ (80-d)*7);
+    /* 速度下限 0：d>97 时 120+(80-d)*7 会变负，导致拾取物被反向推开飞出屏幕 */
+    var sp=Math.max(0, Math.min(560, 120+ (80-d)*7));
     this.vx=U.damp(this.vx,Math.cos(a)*sp,10,dt);
     this.vy=U.damp(this.vy,Math.sin(a)*sp,10,dt);
   } else {
     this.vx*=Math.pow(0.05,dt); this.vy*=Math.pow(0.05,dt);
   }
   this.x+=this.vx*dt; this.y+=this.vy*dt;
+  /* 边界保护：拾取物永不飞出地图 */
+  if(g.map){
+    this.x=U.clamp(this.x, 8, g.map.w-8);
+    this.y=U.clamp(this.y, 8, g.map.h-8);
+  }
   if(auto && d<14){ g.collect(this); }
 };
 Pickup.prototype.draw=function(ctx,t){

@@ -27,6 +27,7 @@ S.capture = function(g){
       energy:p.energy, maxEnergy:p.maxEnergy,
       coins:p.coins, keys:p.keys, mats:p.mats||0,
       wi:p.wi, kills:p.kills||0,
+      modules:p.modules||null,
       weapons:p.weapons.map(function(w){
         var s=G.Weapons.snapshot(w);
         s.id=w.id; /* id 是继承属性，需显式保存 */
@@ -86,6 +87,7 @@ S.restore = function(g, data){
   pl.coins=p.coins; pl.keys=p.keys; pl.mats=p.mats||0;
   pl.kills=p.kills||0;
   pl.weapons=[]; pl.wi=p.wi||0;
+  pl.modules=p.modules||null;
   for(var j=0;j<(p.weapons||[]).length;j++) pl.giveWeapon(p.weapons[j], true);
   pl.picked=[];
   for(var k=0;k<(p.picked||[]).length;k++){

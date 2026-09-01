@@ -150,7 +150,7 @@ function buildOpts(){
   dbtn.className='sw on'; dbtn.style.minWidth='120px';
   function refreshDiff(){
     var D=G.DIFFICULTY[diffSel];
-    dbtn.textContent=D.name+' · '+D.desc;
+    dbtn.textContent=D.name+'（'+D.desc+'）';
   }
   refreshDiff();
   dbtn.onclick=function(){
@@ -232,6 +232,42 @@ function buildRecycle(){
   $('recycle-confirm').style.display = scrapSel>=0?'':'none';
 }
 var scrapSel=-1;
+
+/* ---------- 拆解机面板 ---------- */
+var disasmSel=0;
+function buildDisasm(){
+  var p=game.player;
+  if(!p) return;
+  var wbox=$('disasm-weapons');
+  wbox.innerHTML='';
+  p.weapons.forEach(function(w,i){
+    var e=document.createElement('div');
+    e.className='entry'+(i===disasmSel?' sel':'');
+    e.appendChild(mini(40,40,function(x){ x.clearRect(0,0,40,40); Art.weapon(x,20,20,-0.4,w.art,{t:0.5,scale:1.05}); }));
+    var info=document.createElement('div');
+    info.className='info';
+    info.innerHTML='<div class="nm r'+w.rarity+'">'+w.name+(w.modded?' <span class="pill" style="color:#8ef0ff">改装</span>':'')+' <span class="pill">'+Wp.RARITY_NAME[w.rarity-1]+'</span></div>'+
+      '<div class="ds">伤害 '+w.dmg+' · '+w.type+' · '+(w.trait&&Wp.TRAITS[w.trait]?Wp.TRAITS[w.trait].name:'无特性')+'</div>';
+    e.appendChild(info);
+    e.onclick=function(){ disasmSel=i; buildDisasm(); };
+    wbox.appendChild(e);
+  });
+  if(!p.weapons.length) wbox.innerHTML='<div class="ds">背包为空</div>';
+  /* 已拆解部件 */
+  var mbox=$('disasm-modules');
+  var mods=p.modules||{};
+  var html='<div class="nm">已拆解部件</div>';
+  if(mods.shape){
+    html+='<div class="ds" style="color:#8ef0ff">射弹类型 ← '+mods.shape.shape+'（'+(mods.shape.count||1)+' 发）</div>';
+  } else html+='<div class="ds" style="opacity:0.5">射弹类型：无</div>';
+  if(mods.stats){
+    html+='<div class="ds" style="color:#ffd45e">武器属性 ← 伤害 '+mods.stats.dmg+' · 射速 '+mods.stats.rate+'</div>';
+  } else html+='<div class="ds" style="opacity:0.5">武器属性：无</div>';
+  if(mods.mode){
+    html+='<div class="ds" style="color:#ff8ac0">攻击方式 ← '+mods.mode.type+(mods.mode.trait&&Wp.TRAITS[mods.mode.trait]?' · '+Wp.TRAITS[mods.mode.trait].name:'')+'</div>';
+  } else html+='<div class="ds" style="opacity:0.5">攻击方式：无</div>';
+  mbox.innerHTML=html;
+}
 
 /* ---------- 武器改装面板 ---------- */
 var partsSel=0, partsShop=[];
@@ -519,6 +555,12 @@ function bindButtons(){
         if(!res.ok) toastDom('加入失败：'+res.error);
       });
     }
+    else if(act==='disasm-do'){
+      if(game.disassembleWeapon(disasmSel)){ disasmSel=0; buildDisasm(); }
+    }
+    else if(act==='disasm-install'){
+      if(game.installModulesTo(disasmSel)){ buildDisasm(); }
+    }
     else if(act==='net-leave'){
       G.Net.leave();
       game.netMode=null;
@@ -618,6 +660,7 @@ function boot(){
   game.onForge = function(){ fromGamePanel=true; game.panelOpen=true; forgeSel={main:-1,sub:-1}; buildForge(); show('scr-forge'); };
   game.onRecycle = function(){ fromGamePanel=true; game.panelOpen=true; scrapSel=-1; buildRecycle(); show('scr-recycle'); };
   game.onQuest = function(){ fromGamePanel=true; game.panelOpen=true; buildQuest(); show('scr-quest'); };
+  game.onDisasm = function(){ fromGamePanel=true; game.panelOpen=true; disasmSel=0; buildDisasm(); show('scr-disasm'); };
   game.onNet = function(){ fromGamePanel=true; game.panelOpen=true; show('scr-net'); };
   game.onGunsmith = function(){
     fromGamePanel=true; game.panelOpen=true;

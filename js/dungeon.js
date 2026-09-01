@@ -81,7 +81,7 @@ D.generate = function(floor, biome, opts){
   var nChal = floor>=2?1:0;
   for(var ci=0;ci<nChal && ci<rest.length;ci++) rest[ci].type='challenge';
   /* 多功能特殊房：按楼层解锁，从剩余房间中挑选（不覆盖 challenge） */
-  var specialPool = ['rest','armory','recycle','forge','gunsmith'];
+  var specialPool = ['rest','armory','recycle','forge','gunsmith','disassembler'];
   if(floor>=2) specialPool = specialPool.concat(['elite','mentor','smith','wishing','statue','trap','vault']);
   shuffle(specialPool);
   /* 难度越高，奖励房越少（specRooms 为负） */
@@ -91,6 +91,19 @@ D.generate = function(floor, biome, opts){
   }
   var nSpec = Math.min(specialPool.length, Math.max(0, Math.floor(floor*0.8) + specAdj));
   for(var si=0; si<nSpec && (nChal+si)<rest.length; si++) rest[nChal+si].type = specialPool[si];
+  /* 困难/噩梦保底商店：每层保证一个商店（武器/消耗品/配件 三选一） */
+  if(opts.difficulty!==undefined && opts.difficulty>=2){
+    var shopTypes=['weaponshop','consumableshop','partshop'];
+    var st=shopTypes[Math.floor(rnd()*shopTypes.length)];
+    var target=null;
+    for(var si2=0;si2<cells.length && !target;si2++){
+      var c4=cells[si2];
+      if(c4===cells[0]) continue;
+      if(!c4.type || c4.type==='normal') target=c4;
+    }
+    if(target){ target.type=st; }
+    else { /* 无可用房间时放弃保底 */ }
+  }
   cells[0].type='start';
   for(var cj=0;cj<cells.length;cj++) if(!cells[cj].type) cells[cj].type='normal';
 
@@ -102,7 +115,8 @@ D.generate = function(floor, biome, opts){
     else if(c3.type==='gate'){ rw=randi(20,25); rh=randi(14,17); }
     else if(c3.type==='shop'||c3.type==='treasure'||c3.type==='shrine'||c3.type==='forge'||c3.type==='recycle'
       ||c3.type==='mentor'||c3.type==='smith'||c3.type==='wishing'||c3.type==='statue'||c3.type==='rest'
-      ||c3.type==='trap'||c3.type==='armory'||c3.type==='vault'||c3.type==='gunsmith'){ rw=randi(14,18); rh=randi(10,13); }
+      ||c3.type==='trap'||c3.type==='armory'||c3.type==='vault'||c3.type==='gunsmith'||c3.type==='disassembler'
+      ||c3.type==='weaponshop'||c3.type==='consumableshop'||c3.type==='partshop'){ rw=randi(14,18); rh=randi(10,13); }
     else if(c3.type==='start'){ rw=randi(15,19); rh=randi(11,14); }
     else { rw=randi(15,25); rh=randi(11,17); }
     rw=Math.min(rw,CW-4); rh=Math.min(rh,CH-4);
@@ -115,7 +129,8 @@ D.generate = function(floor, biome, opts){
       cx:(ccx+0.5)*TS, cy:(ccy+0.5)*TS,
       cleared:(c3.type==='start'||c3.type==='treasure'||c3.type==='shop'||c3.type==='shrine'
         ||c3.type==='forge'||c3.type==='recycle'||c3.type==='mentor'||c3.type==='smith'||c3.type==='wishing'
-        ||c3.type==='statue'||c3.type==='rest'||c3.type==='trap'||c3.type==='armory'||c3.type==='vault'||c3.type==='gunsmith'),
+        ||c3.type==='statue'||c3.type==='rest'||c3.type==='trap'||c3.type==='armory'||c3.type==='vault'||c3.type==='gunsmith'||c3.type==='disassembler'
+        ||c3.type==='weaponshop'||c3.type==='consumableshop'||c3.type==='partshop'),
       visited:false, active:false, doors:[], spawned:false, entities:[]
     };
     room.wx = room.x*TS; room.wy = room.y*TS;

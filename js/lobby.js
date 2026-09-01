@@ -108,7 +108,9 @@ L.update = function(g, dt){
     {key:'dummy', x:L.LAYOUT.dummy.x, y:L.LAYOUT.dummy.y, label:'训练木桩（攻击测试）'},
     {key:'quest', x:L.LAYOUT.quest.x, y:L.LAYOUT.quest.y, label:'任务板（E）'},
     {key:'garden', x:L.LAYOUT.garden.x, y:L.LAYOUT.garden.y, label:g.lobbyGarden.watered?'花园（今日已浇水）':'花园（E 浇水收获）'},
-    {key:'net', x:320, y:150, label:'联机石碑（E）'}
+    {key:'net', x:320, y:150, label:'联机石碑（E）'},
+    {key:'disasm', x:200, y:150, label:'拆解机（E）'},
+    {key:'diff', x:440, y:150, label:'难度：'+G.DIFFICULTY[U.clamp(g.difficulty||0,0,3)].name+'（E 切换）'}
   ];
   var best=null, bd=46;
   for(var i=0;i<spots.length;i++){
@@ -130,6 +132,14 @@ L.update = function(g, dt){
       else if(best.key==='quest'){ if(g.onQuest) g.onQuest(); }
       else if(best.key==='garden'){ L.waterGarden(g); }
       else if(best.key==='net'){ if(g.onNet) g.onNet(); }
+      else if(best.key==='disasm'){ if(g.onDisasm) g.onDisasm(); }
+      else if(best.key==='diff'){
+        g.difficulty=(g.difficulty||0)+1;
+        if(g.difficulty>=G.DIFFICULTY.length) g.difficulty=0;
+        U.save('difficulty',g.difficulty);
+        g.toast('难度：'+G.DIFFICULTY[g.difficulty].name+' — '+G.DIFFICULTY[g.difficulty].desc);
+        G.Audio.sfx.click();
+      }
     }
   }
   IN.end();
@@ -185,15 +195,23 @@ L.draw = function(g, ctx){
   Art.gacha(ctx, L.LAYOUT.gacha.x, L.LAYOUT.gacha.y, t);
   Art.dummy(ctx, L.LAYOUT.dummy.x, L.LAYOUT.dummy.y, t);
   Art.questboard(ctx, L.LAYOUT.quest.x, L.LAYOUT.quest.y, t);
+  Art.disassembler(ctx, 200, 150, t);
+  /* 难度石碑 */
+  ctx.save(); ctx.translate(440,150);
+  Art.shadow(ctx,0,8,10,3,0.3);
+  ctx.fillStyle='#3a4468'; ctx.beginPath(); U.roundRect(ctx,-8,-12,16,20,3); ctx.fill();
+  ctx.fillStyle='#ffd06a'; ctx.font='bold 9px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('难',0,-1); ctx.fillText('度',0,8);
+  ctx.restore();
   Art.garden(ctx, L.LAYOUT.garden.x, L.LAYOUT.garden.y, t, g.lobbyGarden.watered);
-  /* 难度显示 */
+  /* 难度显示（E 可切换） */
   ctx.save();
   ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
   var D=G.DIFFICULTY[U.clamp(g.difficulty||0,0,3)];
   ctx.fillStyle='rgba(8,10,22,0.7)';
   U.roundRect(ctx,320-70,44,140,18,9); ctx.fill();
   ctx.fillStyle='#ffd06a';
-  ctx.fillText('难度：'+D.name,320,57);
+  ctx.fillText('难度：'+D.name+'（E 切换）',320,57);
   ctx.restore();
   /* 英雄立牌 */
   for(var hi=0;hi<G.Heroes.length;hi++){
