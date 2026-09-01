@@ -109,11 +109,14 @@ function check(name, cond, info){ results.push({name, ok:!!cond, info:info||''})
   check('chain 电弧传导', b.hp<hp0, '第二目标受到 '+(hp0-b.hp).toFixed(0)+' 伤害');
 }
 /* growing 滚雪球：飞行中伤害与体积增长 */
-{ const g=newGame(), p=g.player, w=equip(g,'plasma'); p.aim=0;
-  g.enemies.length=0; g.bullets.length=0; w.cd=-1; p.fire(g,w,1);
-  const b=g.bullets[0]; const d0=b.dmg, r0=b.r;
-  for(let i=0;i<40;i++) g.update(1/60);
-  check('growing 滚雪球', b.dmg>d0*1.2 && b.r>r0, '伤害 '+d0.toFixed(0)+'→'+b.dmg.toFixed(0)+', 半径 '+r0.toFixed(1)+'→'+b.r.toFixed(1));
+{ const g=newGame(), p=g.player;
+  g.enemies.length=0; g.bullets.length=0;
+  /* 直接验证 growing 机制：noWall 子弹避免撞墙/障碍物干扰 */
+  const b=g.spawnBullet({x:100,y:100,ang:0,spd:100,dmg:19,r:5.5,color:'#fff',shape:'orb',team:'player',life:5,noWall:true});
+  b.trait='growing'; b.dmg0=b.dmg; /* emitShot 中设置，直接 spawn 需手动补 */
+  const d0=b.dmg, r0=b.r;
+  for(let i=0;i<60;i++) b.update(1/60, g);
+  check('growing 滚雪球', b.dmg>d0*1.5 && b.r>r0, '伤害 '+d0.toFixed(0)+'→'+b.dmg.toFixed(0)+', 半径 '+r0.toFixed(1)+'→'+b.r.toFixed(1));
 }
 /* ricochet 蓄力跳弹：真实撞墙反弹后伤害提升 */
 { const g=newGame(), p=g.player;

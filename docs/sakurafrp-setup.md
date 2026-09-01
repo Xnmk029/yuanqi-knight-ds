@@ -16,13 +16,18 @@
 ```bash
 cd server
 npm install        # 首次需要
-npm start          # 或双击 start-server.ps1
+powershell -ExecutionPolicy Bypass -File start-server.ps1   # 弹出可见 cmd 窗口，实时显示日志
 ```
 
-验证：浏览器访问 http://127.0.0.1:9000/yqks/peerjs 应返回 400（说明服务在运行）。
-当前状态：信令服务器已在后台运行（端口 9000，PID 见 server/server.pid）。
+> **自研信令服务器**（2026-09-01 重写）：兼容 peerjs 1.5.4 完整协议——
+> - HTTP `GET /yqks/peerjs/id` 分配 id（修复客机 "server error"：旧 peerjs-server 0.2.9 缺少此路由，客机 retrieveId 失败）
+> - WebSocket 信令转发（OFFER/ANSWER/CANDIDATE/LEAVE）+ 心跳忽略
+> - 所有连接/转发/错误实时输出到 cmd 窗口
 
-## 第二步：SakuraFrp 创建 TCP 隧道
+验证：浏览器访问 http://127.0.0.1:9000/yqks/peerjs/id 应返回一串随机字符。
+当前状态：信令服务器已在可见 cmd 窗口运行（端口 9000）。
+
+## 第二步：SakuraFrp 创建 TCP 隧道## 第二步：SakuraFrp 创建 TCP 隧道
 
 1. 打开 SakuraFrp 启动器（SakuraLauncher.exe，本机已安装于 C:\Program Files\SakuraFrpLauncher\）并登录
 2. 点击 **创建隧道**，按官方文档填写：

@@ -1,7 +1,4 @@
-# 启动信令服务器（带日志）
+# Start signal server in a visible cmd window with live logs
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$log = Join-Path $root "server.log"
-$err = Join-Path $root "server.err.log"
-$proc = Start-Process -FilePath "node" -ArgumentList "index.js" -WorkingDirectory $root -WindowStyle Hidden -RedirectStandardOutput $log -RedirectStandardError $err -PassThru
-Set-Content -Path (Join-Path $root "server.pid") -Value $proc.Id
-Write-Output ("PID: " + $proc.Id)
+Start-Process -FilePath "cmd.exe" -ArgumentList "/k", "node index.js" -WorkingDirectory $root
+Write-Output "Signal server started in a new cmd window (port 9000)"
