@@ -1,0 +1,13 @@
+{
+  "name": "yqks-signal-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "元气骑士·深渊回响 P2P 联机信令服务器（配合 SakuraFrp 内网穿透）",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "peerjs-server": "^0.2.9"
+  }
+}

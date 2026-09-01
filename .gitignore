@@ -1,0 +1,16 @@
+# 依赖
+node_modules/
+
+# 运行时文件
+server/server.pid
+server/server.log
+server/server.err.log
+
+# 系统文件
+Thumbs.db
+.DS_Store
+*.log
+
+# 编辑器
+.vscode/
+.idea/

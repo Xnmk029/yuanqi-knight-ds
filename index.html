@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>元气骑士 · 深渊回响</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="stage">
+  <canvas id="game" width="640" height="360"></canvas>
+  <canvas id="hud"></canvas>
+
+  <div id="ui">
+
+    <div class="screen active" id="scr-title">
+      <div class="bgfx"></div>
+      <div class="logo">
+        <div class="logo-cn">元气骑士</div>
+        <div class="logo-sub">深 渊 回 响</div>
+        <div class="logo-en">ABYSS ECHO · ROGUELIKE</div>
+      </div>
+      <div class="menu">
+        <button class="btn big" data-act="chars">开 始 冒 险</button>
+        <button class="btn primary" data-act="continue" id="btn-continue" style="display:none">继 续 冒 险</button>
+        <button class="btn" data-act="load" id="btn-load" style="display:none">读 取 存 档</button>
+        <button class="btn" data-act="codex">图 鉴</button>
+        <button class="btn" data-act="help">操 作 说 明</button>
+        <button class="btn" data-act="opts">设 置</button>
+      </div>
+      <div class="corner-hint">键盘鼠标 / 触屏 均可游玩 · 建议全屏</div>
+    </div>
+
+    <div class="screen" id="scr-chars">
+      <h2 class="scr-title">选 择 英 雄</h2>
+      <div class="cards" id="hero-cards"></div>
+      <div class="row">
+        <button class="btn" data-act="back">返回</button>
+        <button class="btn primary" data-act="start">进入地牢</button>
+      </div>
+    </div>
+
+    <div class="screen" id="scr-codex">
+      <h2 class="scr-title">图 鉴</h2>
+      <div class="tabs">
+        <button class="tab active" data-tab="weapons">武器</button>
+        <button class="tab" data-tab="enemies">怪物</button>
+        <button class="tab" data-tab="buffs">祝福</button>
+      </div>
+      <div class="codex-body" id="codex-body"></div>
+      <div class="row"><button class="btn" data-act="back">返回</button></div>
+    </div>
+
+    <div class="screen" id="scr-help">
+      <h2 class="scr-title">操 作 说 明</h2>
+      <div class="help-grid">
+        <div class="help-card">
+          <h3>移动</h3><p><b>W A S D</b> / 方向键<br>触屏：左半屏虚拟摇杆</p>
+        </div>
+        <div class="help-card">
+          <h3>攻击</h3><p><b>鼠标左键</b> 朝准星射击<br>触屏：右半屏摇杆自动开火</p>
+        </div>
+        <div class="help-card">
+          <h3>武器技能</h3><p><b>鼠标右键</b> / <b>K</b><br>消耗能量，每把武器都有独门绝技</p>
+        </div>
+        <div class="help-card">
+          <h3>英雄大招</h3><p><b>空格</b><br>冷却后可释放，扭转战局</p>
+        </div>
+        <div class="help-card">
+          <h3>翻滚闪避</h3><p><b>Shift</b> / <b>L</b><br>无敌帧，可穿过弹幕</p>
+        </div>
+        <div class="help-card">
+          <h3>切换武器</h3><p><b>Q</b> / 鼠标滚轮 / 数字键 <b>1-3</b></p>
+        </div>
+        <div class="help-card">
+          <h3>互动</h3><p><b>E</b> / <b>F</b><br>开箱子、捡武器、买东西、下楼</p>
+        </div>
+        <div class="help-card">
+          <h3>其他</h3><p><b>ESC</b> 暂停 · <b>M</b> 静音 · <b>Tab</b> 地图</p>
+        </div>
+      </div>
+      <div class="row"><button class="btn" data-act="back">返回</button></div>
+    </div>
+
+    <div class="screen" id="scr-opts">
+      <h2 class="scr-title">设 置</h2>
+      <div class="opts" id="opts-body"></div>
+      <div class="row"><button class="btn" data-act="back">返回</button></div>
+    </div>
+
+    <div class="screen" id="scr-pause">
+      <h2 class="scr-title">暂 停</h2>
+      <div class="stat-line" id="pause-stats"></div>
+      <div class="menu">
+        <button class="btn primary" data-act="resume">继续游戏</button>
+        <button class="btn" data-act="save">保存游戏</button>
+        <button class="btn" data-act="opts">设置</button>
+        <button class="btn danger" data-act="quit">放弃冒险</button>
+      </div>
+    </div>
+
+    <div class="screen" id="scr-upgrade">
+      <h2 class="scr-title glow">获 得 祝 福</h2>
+      <div class="sub-title">选择一项永久强化</div>
+      <div class="cards" id="upgrade-cards"></div>
+    </div>
+
+    <div class="screen" id="scr-net">
+      <h2 class="scr-title">P2P 联 机</h2>
+      <div class="sub-title">需先启动本地信令服务器并用 SakuraFrp 映射公网</div>
+      <div class="opts" style="width:min(460px,92%)">
+        <div class="opt"><span>信令服务器地址</span><input type="text" id="net-server" placeholder="127.0.0.1:9000 或 公网地址:端口" style="width:220px;background:#1a2140;border:1px solid #3a4772;color:#fff;padding:6px 10px;border-radius:8px"></div>
+        <div class="opt"><span>房间码</span><input type="text" id="net-room" placeholder="6 位房间码" maxlength="6" style="width:120px;background:#1a2140;border:1px solid #3a4772;color:#fff;padding:6px 10px;border-radius:8px"></div>
+      </div>
+      <div class="preview" id="net-status" style="min-width:min(460px,92%)">未连接</div>
+      <div class="row">
+        <button class="btn" data-act="back">返回</button>
+        <button class="btn primary" data-act="net-host">创建房间（主机）</button>
+        <button class="btn" data-act="net-join">加入房间（客机）</button>
+        <button class="btn danger" data-act="net-leave">断开</button>
+      </div>
+    </div>
+
+    <div class="screen" id="scr-parts">
+      <h2 class="scr-title">武 器 改 装</h2>
+      <div class="sub-title">每把武器 2 个配件槽 · 点击武器选择，点击配件购买/卸下</div>
+      <div class="codex-body" id="parts-weapons"></div>
+      <div class="preview" id="parts-slots"></div>
+      <div class="codex-body" id="parts-shop"></div>
+      <div class="row"><button class="btn" data-act="back">返回</button></div>
+    </div>
+
+    <div class="screen" id="scr-save">
+      <h2 class="scr-title">保 存 游 戏</h2>
+      <div class="sub-title">选择存档槽位（自动存档每 30 秒/清房/换层时更新）</div>
+      <div class="codex-body" id="save-body"></div>
+      <div class="row"><button class="btn" data-act="back">返回</button></div>
+    </div>
+
+    <div class="screen" id="scr-load">
+      <h2 class="scr-title">读 取 存 档</h2>
+      <div class="sub-title">选择要读取的存档</div>
+      <div class="codex-body" id="load-body"></div>
+      <div class="row"><button class="btn" data-act="back">返回</button></div>
+    </div>
+
+    <div class="screen" id="scr-quest">
+      <h2 class="scr-title">任 务 板</h2>
+      <div class="sub-title">每日任务 · 奖励金币</div>
+      <div class="codex-body" id="quest-body"></div>
+      <div class="row"><button class="btn" data-act="back">返回</button></div>
+    </div>
+
+    <div class="screen" id="scr-forge">
+      <h2 class="scr-title">合 成 台</h2>
+      <div class="sub-title">主武器形态 + 副武器元素 → 新武器 · 每层限 1 次</div>
+      <div class="codex-body" id="forge-body"></div>
+      <div class="preview" id="forge-preview"></div>
+      <div class="row">
+        <button class="btn" data-act="back">返回</button>
+        <button class="btn primary" id="forge-confirm" data-act="forge-confirm" style="display:none">确认合成</button>
+      </div>
+    </div>
+
+    <div class="screen" id="scr-recycle">
+      <h2 class="scr-title">回 收 机</h2>
+      <div class="sub-title">分解武器换取金币与材料（材料可抵扣合成费用）</div>
+      <div class="codex-body" id="recycle-body"></div>
+      <div class="row">
+        <button class="btn" data-act="back">返回</button>
+        <button class="btn primary" id="recycle-confirm" data-act="recycle-confirm" style="display:none">确认回收</button>
+      </div>
+    </div>
+
+    <div class="screen" id="scr-over">
+      <h2 class="scr-title dead" id="over-title">你 倒 下 了</h2>
+      <div class="stat-line" id="over-stats"></div>
+      <div class="menu">
+        <button class="btn primary" data-act="retry">再来一局</button>
+        <button class="btn" data-act="menu">回到主菜单</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/save.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/art.js"></script>
+<script src="js/weapons.js"></script>
+<script src="js/enemies.js"></script>
+<script src="js/dungeon.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/game.js"></script>
+<script src="js/lobby.js"></script>
+<script src="js/vendor/peerjs.min.js"></script>
+<script src="js/net.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
