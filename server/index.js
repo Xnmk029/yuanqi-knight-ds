@@ -136,6 +136,26 @@ wss.on('connection', function(socket, req){
   });
 });
 
+/* ws 库会把底层 server 的 error 转发到 WebSocketServer 实例上，必须挂在这里 */
+wss.on('error', function(err){
+  if(err && err.code === 'EADDRINUSE'){
+    console.error('==============================================');
+    console.error('  端口 ' + PORT + ' 已被占用！');
+    console.error('  常见占用者：网易 UU 加速器（uu.exe，占用 9000 做本地代理）、');
+    console.error('  或已有一个信令实例在运行（start-server.ps1 弹的 cmd 窗口）。');
+    console.error('  处理：');
+    console.error('    1) 退出 UU 加速器后重试；或换端口：');
+    console.error('       set YQKS_PORT=9001 && npm start   （SakuraFrp 隧道本地端口同步改）');
+    console.error('    2) 或先结束占用进程再启动：');
+    console.error('       netstat -ano | findstr :' + PORT);
+    console.error('       taskkill /PID <占用进程PID> /F');
+    console.error('==============================================');
+  } else {
+    console.error('服务器错误: ' + (err && err.message || err));
+  }
+  process.exit(1);
+});
+
 server.listen(PORT, '0.0.0.0', function(){
   console.log('==============================================');
   console.log('  元气骑士 P2P 联机信令服务器（自研版）');

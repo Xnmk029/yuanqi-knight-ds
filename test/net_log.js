@@ -84,9 +84,13 @@ g.spawnEnemy('slime', 200, 200, {});
 const snap=G.Net.buildSnap(g);
 check(snap.p.length===1 && snap.e.length===1, '快照构建正常');
 N.state='host'; N.g=g; N.conn={open:true, send:function(){}};
+/* 对局中 hello 应被拒绝（新协议），并留下拒绝日志 */
+let rejSent=null;
+N.send=function(msg){ rejSent=msg; };
 N.onData(g, {t:'hello', hero:'mage'});
-check(!!g.guest, '客机玩家创建正常');
-check(N.logs.some(l=>l.msg.indexOf('客机加入')>=0), '客机加入有日志');
+check(!g.guest, '对局中不创建客机');
+check(rejSent && rejSent.t==='reject', '对局中 hello 返回 reject');
+check(N.logs.some(l=>l.msg.indexOf('拒绝')>=0), '拒绝加入有日志');
 
 if(errors){ console.log('\n失败 '+errors+' 项'); process.exit(1); }
 else console.log('\n联机日志系统测试通过 ✔');

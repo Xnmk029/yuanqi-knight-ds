@@ -67,8 +67,9 @@ powershell -ExecutionPolicy Bypass -File start-server.ps1   # 弹出可见 cmd �
 
 | 问题 | 解决 |
 |---|---|
+| `npm start` 报 EADDRINUSE（9000 被占） | 常见占用者是**网易 UU 加速器**（uu.exe 绑定 9000 做本地代理）。退出 UU 后重试；或换端口：`set YQKS_PORT=9001 && npm start`（SakuraFrp 隧道本地端口同步改） |
 | 信令错误 network / 501 | 国内节点拦截明文 HTTP。隧道开自动 HTTPS，地址加 `wss://` |
-| 创建房间失败 | 先开 `server` 并确认 /health；隧道本地端口必须 9000 |
+| 创建房间失败 | 先开 `server` 并确认 /health；隧道本地端口必须 9000（或与 YQKS_PORT 一致） |
 | 客机 server-error | 旧 peerjs-server 0.2.9 没有 /id。当前客机使用本地随机 Peer ID，同时自研信令保留 /id |
 | 客机一直等待开局 | 主机必须先创建房间，**再走传送门**（大厅 hello 不再带种子） |
 | 开局后只剩 1 名玩家 | 已修复：`start({keepGuest:true})` 保留客机 |

@@ -28,6 +28,21 @@ function Game(){
 }
 G.Game = Game;
 
+/* Scope legacy skill/interaction callbacks to their actual player. */
+Game.prototype.withPlayer = function(actor, fn){
+  var player=this.player, input=G.Input, previous=this.actingPlayer;
+  if(!previous)this.localPlayer=player;
+  this.player=actor; this.actingPlayer=actor;
+  if(actor.netInput) G.Input=actor.netInput;
+  try { return fn(); } finally { this.player=player; G.Input=input; this.actingPlayer=previous; }
+};
+Game.prototype.livingPlayers = function(){ return (this.players&&this.players.length?this.players:[this.player]).filter(function(p){return p&&!p.dead;}); };
+Game.prototype.nearestPlayer = function(x,y){
+  var players=this.livingPlayers(), best=null, distance=Infinity;
+  for(var i=0;i<players.length;i++){ var d=U.dist(x,y,players[i].x,players[i].y); if(d<distance){best=players[i];distance=d;} }
+  return best;
+};
+
 Game.prototype.init = function(){
   this.canvas = document.getElementById('game');
   this.ctx = this.canvas.getContext('2d');
@@ -59,13 +74,14 @@ Game.prototype.resize = function(){
 /* ================= 开局 ================= */
 Game.prototype.start = function(heroId, opts){
   opts=opts||{};
-  var keepGuest=!!opts.keepGuest && this.guest && !this.guest.dead;
+  var keepGuest=!!opts.keepGuest && this.guest && (!this.guest.dead||this.netMode==='host');
   var guestHero=keepGuest && this.guest.hero ? this.guest.hero : null;
   var guestNetInput=keepGuest ? this.guest.netInput : null;
   var hero=null;
   for(var i=0;i<G.Heroes.length;i++) if(G.Heroes[i].id===heroId) hero=G.Heroes[i];
   hero = hero||G.Heroes[0];
   this.player = new G.Player(hero, this);
+  this.player.netId=0;
   this.players=[this.player];
   this.guest=null;
   this.stats={kills:0,coins:0,time:0,floor:1,dmg:0};
@@ -75,6 +91,7 @@ Game.prototype.start = function(heroId, opts){
     var guest=new G.Player(guestHero, this);
     guest.netId=1;
     guest.netInput=guestNetInput||null;
+    if(guest.netInput) guest.netInput.end(); /* 清掉大厅残留的边沿输入 */
     this.guest=guest;
     this.players=[this.player, guest];
     this.netMode='host';
@@ -102,8 +119,15 @@ Game.prototype.newFloor = function(n, seed){
   this.zones=[]; this.fx=[]; this.floats=[]; this.timers=[]; this.inter=[];
   this.props = this.map.props.slice();
   var p=this.player;
+  if(this.netMode){ p.dead=false; p.hp=p.maxHp; p.armor=p.maxArmor; p.energy=p.maxEnergy; p.iframe=1; }
   p.x=this.map.startX; p.y=this.map.startY; p.vx=p.vy=0;
-  if(this.guest && !this.guest.dead){
+  if(this.guest){
+    /* 联机换层统一复活客机（含已倒地状态），位置重置到出生点 */
+    this.guest.dead=false;
+    this.guest.hp=this.guest.maxHp;
+    this.guest.armor=this.guest.maxArmor;
+    this.guest.energy=this.guest.maxEnergy;
+    this.guest.iframe=1;
     this.guest.x=this.map.startX+40; this.guest.y=this.map.startY; this.guest.vx=this.guest.vy=0;
     this.players=[this.player, this.guest];
   }
@@ -111,7 +135,12 @@ Game.prototype.newFloor = function(n, seed){
   this.curRoom=this.map.startRoom;
   this.curRoom.visited=true;
   this.bossActive=null;
+  this.portal=null;
   this.buildRoomContent();
+  /* 主机：换层后立即向客机同步楼层与种子（开局/换层共用 floor 消息） */
+  if(G.Net && G.Net.state==='host' && this.netMode==='host' && G.Net.conn && G.Net.conn.open){
+    G.Net.sendFloor(this);
+  }
   G.Audio.music.start(this.biome);
   this.toast('第 '+this.major+' 大关 · '+this.minor+' 小关 · '+this.B.name + (this.loop>0?(' (轮回 '+this.loop+')'):''));
   if(G.Save) G.Save.auto(this);
@@ -664,16 +693,38 @@ Game.prototype.update = function(dt){
     for(i2=this.parts.length-1;i2>=0;i2--){ this.parts[i2].update(dt); if(this.parts[i2].life<=0) this.parts.splice(i2,1); }
     for(i2=this.fx.length-1;i2>=0;i2--){ var fx2=this.fx[i2]; fx2.update(dt,this); if(fx2.dead) this.fx.splice(i2,1); }
     for(i2=this.floats.length-1;i2>=0;i2--){ var ft2=this.floats[i2]; ft2.life-=dt; ft2.y+=ft2.vy*dt; ft2.x+=ft2.vx*dt; ft2.vy+=90*dt; if(ft2.life<=0) this.floats.splice(i2,1); }
+    /* 门动画与主机状态一致（open 位随快照同步） */
+    if(this.map){
+      for(i2=0;i2<this.map.doors.length;i2++){
+        var d2=this.map.doors[i2];
+        d2.anim=U.damp(d2.anim, d2.open?0:1, 9, dt);
+      }
+    }
     this.updateCamera(dt);
     if(G.Net) G.Net.update(this, dt);
     if(this.player.dead && this.state==='playing'){
-      this.state='dead';
-      if(this.onGameOver) this.onGameOver();
+      /* 主机（权威方）倒下 → 对局结束；仅客机倒地则观战等待换层复活 */
+      if(this.guest && !this.guest.dead){
+        if(!this.spectateTold){
+          this.spectateTold=true;
+          this.toast('你已倒下，等待队友推进（换层复活）...');
+        }
+      } else {
+        this.state='dead';
+        if(this.onGameOver) this.onGameOver();
+      }
+    } else if(!this.player.dead){
+      this.spectateTold=false;
     }
     IN.end();
     return;
   }
-  if(this.state!=='playing' || this.panelOpen){ IN.end(); return; }
+  if(this.state!=='playing' || this.panelOpen){
+    if(G.Net && this.netMode==='host') G.Net.update(this,dt);
+    /* 暂停期间继续消费客机输入边沿，避免恢复后残留按键一次性触发 */
+    if(this.guest && this.guest.netInput) this.guest.netInput.end();
+    IN.end(); return;
+  }
   if(this.hitStopT>0){ this.hitStopT-=dt; IN.end(); this.t+=dt*0.15; return; }
   if(this.slowT>0){ this.slowT-=dt; dt*=this.slowScale; }
   this.t+=dt; this.stats.time+=dt;
@@ -688,14 +739,18 @@ Game.prototype.update = function(dt){
   p.update(dt,this);
   /* 联机：客机玩家由网络输入驱动 */
   if(this.guest && !this.guest.dead){
-    this.guest.update(dt,this);
+    var self=this;
+    this.withPlayer(this.guest,function(){ self.guest.update(dt,self); if(self.state==='playing') self.updateInteract(dt); });
     if(this.guest.hp<=0 && !this.guest.dead){ this.guest.dead=true; }
+    /* 消费本帧网络输入边沿（hit/downHit 只生效一帧，防止按住连发） */
+    if(this.guest.netInput) this.guest.netInput.end();
   }
-  if(G.Net && this.netMode==='host') G.Net.update(this, dt);
-  if(p.dead && this.state==='playing'){
+  if(this.livingPlayers().length===0 && this.state==='playing'){
     this.state='dead';
     this.burst(p.x,p.y,50,{color:'#ff5b6e',spd:260,life:1.0});
     G.Audio.sfx.explode(); G.Audio.music.stop();
+    /* 队伍全灭后由权威主机通知客机结算 */
+    if(G.Net && this.netMode==='host' && G.Net.conn && G.Net.conn.open) G.Net.send({t:'over',state:'dead',stats:this.stats});
     if(this.onGameOver) this.onGameOver();
     return;
   }
@@ -759,6 +814,7 @@ Game.prototype.update = function(dt){
   }
   this.updateRooms(dt);
   this.updateInteract(dt);
+  if(G.Net && this.netMode==='host') G.Net.update(this,dt);
   this.updateCamera(dt);
   /* 实时存档：每 30 秒自动保存 */
   this.saveT=(this.saveT||0)-dt;
@@ -768,6 +824,7 @@ Game.prototype.update = function(dt){
   IN.end();
 };
 Game.prototype.updateInteract = function(dt){
+  if(!this.player || this.player.dead) return;
   var p=this.player, best=null, bd=44;
   for(var i=0;i<this.inter.length;i++){
     var it=this.inter[i];
@@ -778,7 +835,7 @@ Game.prototype.updateInteract = function(dt){
   var bestPick=null, pd=30;
   for(var j=0;j<this.pickups.length;j++){
     var pu=this.pickups[j];
-    if(pu.kind!=='weapon') continue;
+    if(pu.kind!=='weapon'||pu.dead) continue;
     var d2=U.dist(p.x,p.y,pu.x,pu.y);
     if(d2<pd){ pd=d2; bestPick=pu; }
   }
@@ -801,7 +858,7 @@ Game.prototype.updateInteract = function(dt){
   }
 };
 Game.prototype.updateCamera = function(dt){
-  var p=this.player;
+  var p=this.player.dead?(this.nearestPlayer(this.player.x,this.player.y)||this.player):this.player;
   var ax=Math.cos(p.aim)*26, ay=Math.sin(p.aim)*26;
   this.cam.tx = p.x - LW/2 + ax;
   this.cam.ty = p.y - LH/2 + ay;
@@ -1323,7 +1380,10 @@ Game.prototype.drawMinimap = function(c,x,y,w,h){
 /* ================= 通用 API ================= */
 Game.prototype.toast = function(txt){ this.msg=txt; this.msgT=2.2; var self=this;
   this.delayed(2.2,function(){ if(self.msg===txt) self.msg=null; }); };
-Game.prototype.delayed = function(t,fn){ this.timers.push({t:t,fn:fn}); };
+Game.prototype.delayed = function(t,fn){
+  var actor=this.actingPlayer, self=this;
+  this.timers.push({t:t,fn:actor?function(){return self.withPlayer(actor,fn);}:fn});
+};
 Game.prototype.shake = function(v){ this.shakeV=Math.min(16,(this.shakeV||0)+v*0.45); };
 Game.prototype.hitStop = function(t){ this.hitStopT=Math.max(this.hitStopT,t); };
 Game.prototype.timeStop = function(dur){ this.slowT=dur; this.slowScale=0.12; var self=this;
@@ -1343,7 +1403,8 @@ Game.prototype.burst = function(x,y,n,o){
   }
 };
 Game.prototype.spawnBullet = function(o){
-  var p=this.player;
+  /* 加成按射击者结算（联机时客机子弹不应吃主机的 buff/暴击/词条） */
+  var p = (o.from && o.from.dmgMult!==undefined) ? o.from : this.player;
   if(o.team==='player' && p){
     o.dmg = o.dmg * p.dmgMult;
     if(o.crit===undefined && Math.random()<p.critChance){ o.crit=1; o.dmg*=p.critMult; }
@@ -1358,6 +1419,8 @@ Game.prototype.spawnBullet = function(o){
     o.kb=(o.kb||0)*(1+p.up.kb);
   }
   var b=new G.Bullet(o);
+  b.owner=o.team==='player'?p:null;
+  b.ownerId=b.owner?b.owner.netId:null;
   this.bullets.push(b);
   return b;
 };
@@ -1450,7 +1513,9 @@ Game.prototype.damageEnemy = function(e,dmg,o){
     else G.Audio.sfx.hit();
     this.burst(e.x,e.y,o.crit?9:4,{color:o.color||e.def.look.c1,spd:110,life:0.3,r:2.5});
   }
-  var p=this.player;
+  /* 吸血按伤害来源结算（联机时客机击杀回血给客机自己） */
+  var p = (o.from && o.from.up!==undefined) ? o.from : this.player;
+  e.lastOwner=p;
   if(p && p.up.vamp>0) p.heal(dmg*p.up.vamp);
   if(p && p.buffs.vamp) p.heal(dmg*p.buffs.vamp.v);
   if(e.hp<=0) e.die(this);
@@ -1462,8 +1527,8 @@ Game.prototype.explode = function(x,y,r,dmg,color,team){
   this.shake(Math.min(12,r*0.09));
   G.Audio.sfx.explode();
   if(team==='enemy'){
-    var p=this.player;
-    if(p&&!p.dead&&U.dist(p.x,p.y,x,y)<r) p.hurt(dmg,this,null);
+    var players=this.livingPlayers();
+    for(var pi=0;pi<players.length;pi++){var p=players[pi];if(U.dist(p.x,p.y,x,y)<r)p.hurt(dmg,this,null);}
   } else {
     var list=this.enemiesInRadius(x,y,r);
     for(var i=0;i<list.length;i++){
@@ -1490,8 +1555,9 @@ Game.prototype.beam = function(x,y,ang,len,dmg,o){
   this.fx.push(makeFx('beam',{x1:x,y1:y,x2:x+dx*end,y2:y+dy*end,color:o.color||'#8ef0ff',
     width:o.width||8,life:o.dur||0.25}));
   if(o.team==='enemy'){
-    var p=this.player;
-    if(p&&!p.dead){
+    var players=this.livingPlayers();
+    for(var pi=0;pi<players.length;pi++){
+      var p=players[pi];
       var pd=pointLineDist(p.x,p.y,x,y,x+dx*end,y+dy*end);
       if(pd<p.r+(o.width||8)*0.5) p.hurt(dmg,this,null);
     }
@@ -1564,7 +1630,8 @@ Game.prototype.skyStrike = function(x,y,dmg,color,kind,aoe){
     if(kind==='spike'){
       self.fx.push(makeFx('spike',{x:x,y:y,r:aoe,color:color,life:0.4}));
       var l=self.enemiesInRadius(x,y,aoe);
-      if(self.player && U.dist(self.player.x,self.player.y,x,y)<aoe) self.player.hurt(dmg,self,null);
+      var players=self.livingPlayers();
+      for(var pi=0;pi<players.length;pi++) if(U.dist(players[pi].x,players[pi].y,x,y)<aoe) players[pi].hurt(dmg,self,null);
       self.shake(5);
     } else {
       self.explode(x,y,aoe,dmg,color,'enemy');
@@ -1610,8 +1677,9 @@ Game.prototype.hitProp = function(p,dmg){
 Game.prototype.dropPickup = function(x,y,kind,val){
   this.pickups.push(new G.Pickup(x,y,kind,val,this));
 };
-Game.prototype.collect = function(pu){
-  var p=this.player;
+Game.prototype.collect = function(pu,player){
+  var p=player||this.player;
+  if(pu.dead || !p || p.dead) return;
   pu.dead=true;
   if(pu.kind==='coin'){ var v=Math.round(pu.val*(1+p.up.gold)); p.coins+=v; this.stats.coins+=v; G.Audio.sfx.coin(); }
   else if(pu.kind==='heart'){ p.heal(pu.val); G.Audio.sfx.heal(); this.float('+'+pu.val,p.x,p.y-24,'#ff8a9a'); }
@@ -1620,6 +1688,9 @@ Game.prototype.collect = function(pu){
   else if(pu.kind==='key'){ p.keys++; G.Audio.sfx.unlock(); }
 };
 Game.prototype.onEnemyKilled = function(e){
+  if(e.lastOwner && !this.actingPlayer){
+    var self=this; return this.withPlayer(e.lastOwner,function(){return self.onEnemyKilled(e);});
+  }
   this.stats.kills++;
   if(G.Lobby) G.Lobby.addProgress('kill', 1);
   this.player.kills++;
@@ -1669,12 +1740,12 @@ function makeFx(type,o){
           var l2=g.enemiesInRadius(this.x,this.y,this.r*0.45);
           for(var j=0;j<l2.length;j++) g.damageEnemy(l2[j],this.dmg,{color:'#c07aff'});
         } else {
-          var p=g.player;
-          if(p&&U.dist(p.x,p.y,this.x,this.y)<this.r){
+          var players=g.livingPlayers();
+          for(var hi=0;hi<players.length;hi++){var p=players[hi];if(U.dist(p.x,p.y,this.x,this.y)<this.r){
             var a2=U.ang(p.x,p.y,this.x,this.y);
             p.vx+=Math.cos(a2)*220; p.vy+=Math.sin(a2)*220;
             if(U.dist(p.x,p.y,this.x,this.y)<this.r*0.35) p.hurt(this.dmg,g,null);
-          }
+          }}
         }
       }
       if(Math.random()<dt*30){

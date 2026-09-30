@@ -139,10 +139,7 @@ L.update = function(g, dt){
         } else {
           var keep=G.Net && G.Net.state==='host' && g.guest;
           g.start(G.Heroes[g.lobbyHeroIdx].id, {keepGuest:!!keep});
-          if(G.Net && G.Net.state==='host'){
-            g.netMode='host';
-            G.Net.sendWelcome(g);
-          }
+          /* 楼层同步已由 newFloor 自动广播（floor 消息） */
         }
       }
       else if(best.key==='heroes'){ g.lobbyHeroIdx=(g.lobbyHeroIdx+1)%G.Heroes.length; G.Audio.sfx.click(); }

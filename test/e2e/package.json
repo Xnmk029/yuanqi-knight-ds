@@ -1,0 +1,13 @@
+{
+  "name": "yqks-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "虚拟双浏览器 P2P 端到端测试（真实 peerjs + 真实 WebSocket/WebRTC）",
+  "scripts": {
+    "test": "node run.js"
+  },
+  "dependencies": {
+    "@roamhq/wrtc": "^0.10.0",
+    "ws": "^8.18.3"
+  }
+}

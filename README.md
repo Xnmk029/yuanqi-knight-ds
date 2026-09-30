@@ -10,6 +10,8 @@
 直接双击 `index.html`（或拖进浏览器）。无需服务器、无需联网。
 推荐 Chrome / Edge / Firefox，建议全屏（F11）。
 
+Steam 双人合作使用 Windows x64 本机运行时，通过 `start-steam.cmd` 启动。便携包自带 Node；源码接入所需组件在独立仓库 [steam-spacewar-multiplayer-skill](https://github.com/Xnmk029/steam-spacewar-multiplayer-skill)。两端自主自动测试使用 `verify-steam-host.cmd` / `verify-steam-worker.cmd`，配置与当前支持范围见 [Steam 多人说明](docs/steam-multiplayer.md)。
+
 ---
 
 ## 操作

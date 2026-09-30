@@ -312,7 +312,7 @@ function buildParts(){
       (function(btn){
         btn.onclick=function(){
           var pid2=btn.getAttribute('data-part');
-          if(Wp.detachPart(w,pid2)){ G.Audio.sfx.click(); buildParts(); }
+          if(game.detachPart(partsSel,pid2)){ G.Audio.sfx.click(); buildParts(); }
         };
       })(btns[b]);
     }
@@ -337,8 +337,7 @@ function buildParts(){
       var w2=p.weapons[partsSel];
       if(!w2){ toastDom('请先选择武器'); return; }
       if(p.coins<info3.price){ toastDom('金币不足'); return; }
-      if(!Wp.attachPart(w2,pid)){ toastDom('配件槽已满或已安装'); return; }
-      p.coins-=info3.price;
+      if(!game.buyPart(partsSel,pid)){ toastDom('配件槽已满或已安装'); return; }
       G.Audio.sfx.coin();
       buildParts();
     };
@@ -558,6 +557,7 @@ function bindButtons(){
       $('net-room').value=room;
       bindNetUi();
       G.Net.host(game, room, addr, function(res){
+        if(res.ok)$('net-room').value=G.Net.roomCode;
         if(res.ok && res.connected){ toastDom('客机已加入，去传送门开局吧'); }
         else if(res.ok){ toastDom('房间已创建，等待客机加入'); }
         else { toastDom('创建失败：'+res.error); }
@@ -593,10 +593,10 @@ function bindButtons(){
     else if(act==='recycle-confirm'){
       if(scrapSel>=0 && game.scrapWeapon(scrapSel)){ scrapSel=-1; buildRecycle(); }
     }
-    else if(act==='resume'){ show(null); game.state='playing'; }
-    else if(act==='quit'){ game.state='menu'; G.Audio.music.stop(); show('scr-title'); }
-    else if(act==='retry'){ show(null); game.start(selHero); }
-    else if(act==='menu'){ game.state='menu'; G.Audio.music.stop(); show('scr-title'); }
+    else if(act==='resume'){ if(game.netMode==='client')toastDom('等待房主恢复');else{show(null);game.state='playing';} }
+    else if(act==='quit'){ if(G.Net.state!=='off')G.Net.leave();game.state='menu'; G.Audio.music.stop(); show('scr-title'); }
+    else if(act==='retry'){ if(game.netMode==='client')toastDom('等待房主再来一局');else{show(null);game.start(game.netMode?game.player.hero.id:selHero,{keepGuest:game.netMode==='host'});} }
+    else if(act==='menu'){ if(G.Net.state!=='off')G.Net.leave();game.state='menu'; G.Audio.music.stop(); show('scr-title'); }
     else if(act==='play'){ buildHeroes(); show('scr-chars'); }
   });
 }
@@ -634,10 +634,10 @@ function loop(ts){
     IN.end();
   }
   if(game.state==='playing'){
-    if(IN.hit('escape','p')){ game.state='paused'; buildPauseStats(); show('scr-pause'); }
+    if(IN.hit('escape','p')){ if(game.netMode==='client')toastDom('联机暂停由房主控制');else{game.state='paused'; buildPauseStats(); show('scr-pause');} }
     if(IN.hit('m')){ var on=G.Audio.toggle(); toastDom(on?'音效开启':'音效静音'); }
   } else if(game.state==='paused'){
-    if(IN.hit('escape','p')){ game.state='playing'; show(null); }
+    if(IN.hit('escape','p')){ if(game.netMode==='client')toastDom('等待房主恢复');else{game.state='playing';show(null);} }
   }
   if(game.msgT>0) game.msgT-=dt;
   game.update(dt);
@@ -694,6 +694,13 @@ function boot(){
   G.Audio.sfxVol = U.load('sfx',0.55);
   G.Audio.musVol = U.load('mus',0.34);
   game.onUpgrade = showUpgrade;
+  game.onCoopState=function(state,before){
+    if(state==='win')game.onWin();
+    else if(state==='dead')game.onGameOver();
+    else if(state==='menu')show('scr-title');
+    else if(state==='paused'){buildPauseStats();show('scr-pause');}
+    else if(state==='playing'&&(before==='upgrade'||before==='paused'||before==='win'||before==='dead'||before==='lobby'))show(null);
+  };
   game.onForge = function(){ fromGamePanel=true; game.panelOpen=true; forgeSel={main:-1,sub:-1}; buildForge(); show('scr-forge'); };
   game.onRecycle = function(){ fromGamePanel=true; game.panelOpen=true; scrapSel=-1; buildRecycle(); show('scr-recycle'); };
   game.onQuest = function(){ fromGamePanel=true; game.panelOpen=true; buildQuest(); show('scr-quest'); };

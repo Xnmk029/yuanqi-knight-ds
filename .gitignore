@@ -1,6 +1,9 @@
 # 依赖
 node_modules/
 
+# Generated local Steam multiplayer kit
+/.steam-multiplayer/
+
 # 运行时文件
 server/server.pid
 server/server.log
