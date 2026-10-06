@@ -1,0 +1,37 @@
+{
+  "name": "ai-tea-draw",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Bring your own Agent to a moderated, shared SVG canvas",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/main.js",
+    "demo": "node scripts/demo.js",
+    "ui:demo": "node scripts/serve-ui-demo.js",
+    "verify:ui-demo": "node scripts/verify-ui-demo.js",
+    "test": "node --test test/*.test.js",
+    "verify": "node scripts/verify.js",
+    "package": "node scripts/package.js",
+    "release": "node scripts/release.js",
+    "cli": "node src/cli.js",
+    "mcp": "node src/mcp.js",
+    "host": "node scripts/host.js",
+    "join": "node scripts/join.js",
+    "tea": "node scripts/tea.js",
+    "verify:easy": "node scripts/verify-easy-connect.js",
+    "setup": "node scripts/setup.js"
+  },
+  "dependencies": {
+    "@iarna/toml": "2.2.5",
+    "@resvg/resvg-js": "2.6.2",
+    "jsonc-parser": "3.3.1",
+    "steamworks.js": "0.4.0",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "playwright-core": "1.63.0"
+  }
+}

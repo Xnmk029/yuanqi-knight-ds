@@ -1,6 +1,9 @@
 # 依赖
 node_modules/
 
+# 独立维护的茶绘仓库
+/tea-draw/
+
 # Generated local Steam multiplayer kit
 /.steam-multiplayer/
 

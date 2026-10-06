@@ -1,0 +1,98 @@
+# Copy to the publishing repository's .github/workflows/ai-tea-release.yml.
+# Manual dispatch publishes an immutable versioned Release, then the static Pages entry.
+name: Publish AI Tea Draw
+on:
+  workflow_dispatch:
+    inputs:
+      source_dir:
+        description: Application directory in this repository
+        type: choice
+        options: [ai-tea-draw, '.']
+        default: ai-tea-draw
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: ai-tea-release-pages
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      TEA_SOURCE: ${{ inputs.source_dir }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.15.0'
+          cache: npm
+          cache-dependency-path: ${{ inputs.source_dir }}/package-lock.json
+      - name: Validate and build a fixed version
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = [IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE $env:TEA_SOURCE))
+          if ($source -ne $env:GITHUB_WORKSPACE -and -not $source.StartsWith($env:GITHUB_WORKSPACE + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Source path escape' }
+          Set-Location -LiteralPath $source
+          $private = gh api "repos/$env:GITHUB_REPOSITORY" --jq '.private'
+          if ($LASTEXITCODE -or $private -ne 'false') { throw 'Choose an explicitly public publishing repository. This workflow does not change repository visibility.' }
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid version' }
+          $tag = "ai-tea-v$version"
+          gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null
+          if ($LASTEXITCODE -eq 0) { throw 'This release already exists. Bump the version; do not replace assets.' }
+          npm ci
+          if ($LASTEXITCODE) { throw 'Dependency installation failed' }
+          npm test
+          if ($LASTEXITCODE) { throw 'Tests failed' }
+          npm audit --omit=dev
+          if ($LASTEXITCODE) { throw 'Production dependency audit failed' }
+          node scripts/release.js --base-url "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/"
+          if ($LASTEXITCODE) { throw 'Package build failed' }
+          @"
+          Windows x64. Lite requires Node >=20; portable includes Node.
+          Includes one-call install/configuration for Codex, Claude Code, Cursor, VS Code and Gemini CLI.
+          Unit tests ran in this workflow. Live Steam across distinct accounts was not tested by this workflow.
+          "@ | Set-Content -LiteralPath dist/release-notes.md -Encoding utf8
+          $assets = @("dist/ai-tea-draw-$version-windows-x64-lite.zip", "dist/ai-tea-draw-$version-windows-x64-lite.zip.sha256", "dist/ai-tea-draw-$version-windows-x64-portable.zip", "dist/ai-tea-draw-$version-windows-x64-portable.zip.sha256", 'dist/release-manifest.json')
+          gh release create $tag @assets --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "AI Tea Draw $version" --notes-file dist/release-notes.md --draft
+          if ($LASTEXITCODE) { throw 'Release creation failed' }
+          gh release edit $tag --repo $env:GITHUB_REPOSITORY --draft=false
+          if ($LASTEXITCODE) { throw 'Release publication failed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-tea-static-site
+          path: ${{ inputs.source_dir }}/site
+          if-no-files-found: error
+  pages:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.15.0'
+      - uses: actions/download-artifact@v4
+        with:
+          name: ai-tea-static-site
+          path: site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - uses: actions/deploy-pages@v5
+        id: deployment
+      - name: Verify the actual public entry and both release downloads
+        env:
+          TEA_SOURCE: ${{ inputs.source_dir }}
+          TEA_SITE: ${{ steps.deployment.outputs.page_url }}
+        run: node "$TEA_SOURCE/scripts/verify-public.js" "$TEA_SITE"

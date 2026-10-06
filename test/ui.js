@@ -62,7 +62,7 @@ global.setTimeout=(fn)=>{ try{ fn(); }catch(e){ errors.push('setTimeout: '+e.sta
 global.AudioContext=undefined; global.webkitAudioContext=undefined;
 
 const errors=[];
-for(const f of ['util.js','save.js','devconsole.js','audio.js','art.js','weapons.js','enemies.js','dungeon.js','entities.js','game.js','lobby.js','main.js']){
+for(const f of ['util.js','save.js','devconsole.js','audio.js','art.js','weapons.js','enemies.js','dungeon.js','entities.js','game.js','lobby.js','net.js','coop.js','main.js']){
   try{ vm.runInThisContext(fs.readFileSync(path.join(ROOT,'js',f),'utf8'),{filename:f}); }
   catch(e){ console.error('加载失败 '+f+': '+e.stack); process.exit(1); }
 }
@@ -109,6 +109,7 @@ click(btn('retry')); tick(30);
 console.log('  重开 OK, 状态='+G.game.state);
 click(btn('menu')); tick(10);
 console.log('  返回主菜单 OK, 状态='+G.game.state);
+if(G.game.state!=='menu'){ errors.push('menu 未返回主菜单'); }
 
 if(errors.length){ console.log('\n发现 '+errors.length+' 个错误:'); errors.slice(0,6).forEach(e=>console.log('- '+e)); process.exit(1); }
 console.log('\nUI 全流程测试通过 ✔');

@@ -1,0 +1,23 @@
+{
+  "upstream": "https://github.com/Xnmk029/steam-spacewar-multiplayer-skill",
+  "revision": "55cb875",
+  "changes": "Optional maxMembers with default2 retained; tested8member capacity",
+  "files": [
+    {
+      "path": "protocol.js",
+      "sha256": "65555af43ffcc42d1b35452f5851313f7fcaf01998e9b3036751e0f857e3a8d8"
+    },
+    {
+      "path": "mock-hub.js",
+      "sha256": "505e7df0816f2af211ddd4be23a2152fe761addeb84d7de59030acf82401817c"
+    },
+    {
+      "path": "runtime/steam-transport.js",
+      "sha256": "d08bb18ab91b3bf8c88b1e2ef86c67017a228dcc6d06735037039665b7129967"
+    },
+    {
+      "path": "runtime/mock-transport.js",
+      "sha256": "428398e72bb4bf18f59feb3eb13f76ccbf727fd59c737b76822e127db00f3422"
+    }
+  ]
+}

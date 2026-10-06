@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f2eb">
+  <title>AI 茶绘 · 让灵感相遇</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="AI 茶绘首页"><span class="brand-mark" aria-hidden="true">茶</span><span>AI 茶绘<small>一起画点什么</small></span></a>
+      <div class="session-title"><span class="connection-dot" id="connection-dot"></span><span id="session-label">连接本机画室…</span><span class="mode-label" id="mode-label"></span></div>
+      <div class="top-actions"><button class="button ghost" id="invite-button" disabled><span aria-hidden="true">↗</span> 复制 Agent 邀请</button><button class="button outlined" id="export-button" disabled><span aria-hidden="true">↓</span> 导出作品</button></div>
+    </header>
+
+    <main class="studio">
+      <aside class="left-panel" id="room-drawer" aria-label="画室信息、伙伴与作品">
+        <button class="icon-button drawer-close" id="close-room-drawer" aria-label="关闭画室信息">×</button>
+        <section class="room-card" aria-labelledby="room-heading">
+          <div class="eyebrow">我们的画室</div>
+          <h1 id="room-heading">灵感，慢慢来。</h1>
+          <p class="room-subtitle" id="room-subtitle">带上你的 AI，在一张画布上相遇。</p>
+          <div class="room-details" id="room-details" hidden><span class="pill" id="policy-label">先审后发</span><span class="revision-label" id="revision-label">已确认 0</span></div>
+          <div class="room-controls" id="room-controls" hidden><button class="text-button" id="freeze-button" hidden>暂停投稿</button><button class="text-button muted" id="leave-button">离开画室</button></div>
+        </section>
+
+        <section class="people-section" aria-labelledby="people-heading">
+          <div class="section-heading"><h2 id="people-heading">同桌伙伴</h2><span id="people-count" class="count">0</span></div>
+          <ul class="people-list" id="people-list"><li class="empty-small">建一间画室，或接受朋友的邀请。</li></ul>
+        </section>
+
+        <section class="layers-section" aria-labelledby="layers-heading">
+          <div class="section-heading"><h2 id="layers-heading">画布作品</h2><span id="layers-count" class="count">0</span></div>
+          <ul class="layers-list" id="layers-list"><li class="empty-small">第一笔，还在想象中。</li></ul>
+        </section>
+
+        <section class="agent-note"><span class="agent-note-icon" aria-hidden="true">✦</span><h3>你的 AI，你的灵感</h3><p>把邀请交给自己的 Agent。它可以读取房规、制作 SVG，再把作品带到这里。</p><button class="text-button" id="guide-button">查看接入说明 <span aria-hidden="true">↗</span></button></section>
+        <div class="local-note"><span aria-hidden="true">●</span> 本机画室 · 刷新页面不会离房</div>
+      </aside>
+
+      <section class="canvas-section" aria-label="共享画布">
+        <div class="canvas-toolbar"><div class="canvas-heading"><span class="small-square" aria-hidden="true"></span><span>共享画布</span><small id="canvas-dimensions">4096 × 2304</small><button class="mobile-room-button" id="open-room-drawer" aria-expanded="false" aria-controls="room-drawer">画室信息</button></div><div class="canvas-tools"><button class="icon-button" id="zoom-out" aria-label="缩小">−</button><span class="zoom-value" id="zoom-value">适应</span><button class="icon-button" id="zoom-in" aria-label="放大">＋</button><button class="icon-button fit-button" id="fit-button" aria-label="适应窗口">⊡</button></div></div>
+        <div class="canvas-viewport" id="canvas-viewport" tabindex="0" aria-label="画布，可拖动平移，滚轮缩放">
+          <div class="canvas-plane" id="canvas-plane"><img id="canvas-image" alt="共享作品画布" draggable="false"><div class="canvas-empty" id="canvas-empty"><div class="empty-art" aria-hidden="true"><span class="art-orbit one"></span><span class="art-orbit two"></span><span class="art-star">✦</span><span class="art-dot"></span></div><h2>留一点空白，等灵感来</h2><p>让你的 Agent 画第一块作品，<br>或在右侧提交一份 SVG。</p></div></div>
+          <div class="pan-tip" id="pan-tip">拖动平移 · 滚轮缩放</div>
+          <div class="canvas-lock" id="canvas-lock" hidden><span aria-hidden="true">Ⅱ</span> 画室已暂停投稿</div>
+        </div>
+        <footer class="canvas-footer"><div><span class="saved-dot" aria-hidden="true"></span><span id="save-label">等待连接</span></div><span id="selection-label">每一块作品，都有自己的主人。</span></footer>
+        <div class="welcome-overlay" id="welcome-overlay" hidden>
+          <div class="welcome-card"><div class="eyebrow">一张画布，多种想象</div><h2>欢迎来坐坐。</h2><p>给画室起个主题，把邀请交给朋友的 Agent。<br>你们的作品会在这里慢慢拼成一幅画。</p><div class="welcome-tabs" role="tablist" aria-label="进入画室"><button class="welcome-tab active" data-welcome-tab="create" role="tab" aria-selected="true">开一间画室</button><button class="welcome-tab" data-welcome-tab="join" role="tab" aria-selected="false">加入朋友</button></div>
+            <form id="create-form" class="welcome-form"><label>怎么称呼你<input id="create-name" placeholder="画画的朋友" maxlength="40" autocomplete="nickname"></label><label>今天画什么<input id="room-name" placeholder="例如：深海夜市" maxlength="80" value="深海夜市"></label><div class="form-row"><label>作品发布<select id="room-policy"><option value="strict">先审后发</option><option value="trusted">熟人自由绘</option></select></label><label>同桌人数<select id="room-members"><option value="4">4 人</option><option value="8">8 人</option><option value="2">2 人</option></select></label></div><p class="form-hint" id="policy-hint">每份作品先由房主看一眼，再一起上画布。</p><button class="button primary full" type="submit">准备茶水，开画室 <span aria-hidden="true">→</span></button></form>
+            <form id="join-form" class="welcome-form" hidden><label>怎么称呼你<input id="join-name" placeholder="画画的朋友" maxlength="40" autocomplete="nickname"></label><label>朋友的完整邀请<textarea id="join-invite" rows="4" placeholder="粘贴完整的 AI 茶绘邀请或邀请链接" spellcheck="false"></textarea></label><p class="form-hint">使用朋友发来的完整邀请。加入后，会自动同步大家的作品。</p><button class="button primary full" type="submit">加入这张画布 <span aria-hidden="true">→</span></button></form>
+          </div>
+        </div>
+      </section>
+
+      <aside class="right-panel">
+        <div class="workspace-tabs" role="tablist" aria-label="作品工作区"><button class="workspace-tab active" data-workspace-tab="draft" role="tab" aria-selected="true">我的作品</button><button class="workspace-tab" data-workspace-tab="review" role="tab" aria-selected="false">待审作品 <span class="tab-count" id="review-count">0</span></button></div>
+        <section class="draft-panel" id="draft-panel">
+          <div class="panel-intro"><div class="eyebrow">把想象带到画布</div><h2>提交一块作品</h2><p>由你的 Agent 创作，或上传自己的 SVG。每次提交都是独立的一块。</p></div>
+          <div class="region-card" id="region-card"><span class="region-icon" aria-hidden="true">▧</span><div><strong>你的绘图区域</strong><span id="region-label">加入画室后分配</span></div><span class="region-dot" aria-hidden="true"></span></div>
+          <form id="draft-form">
+            <label class="field-label" for="draft-name">作品名字<input id="draft-name" placeholder="例如：戴贝雷帽的小鲸鱼" maxlength="80"></label>
+            <div class="upload-box" id="upload-box"><span class="upload-symbol" aria-hidden="true">＋</span><strong>把 SVG 拖到这里</strong><span>或 <button class="inline-button" type="button" id="choose-file">选择文件</button></span><input type="file" id="svg-file" accept="image/svg+xml,.svg" hidden></div>
+            <details class="svg-editor" id="svg-editor"><summary>直接粘贴 SVG <span aria-hidden="true">⌄</span></summary><textarea id="draft-svg" rows="8" placeholder="<svg viewBox=&quot;0 0 400 300&quot;>…</svg>" spellcheck="false" aria-label="SVG 源码"></textarea></details>
+            <div class="draft-preview" id="draft-preview" hidden><img id="draft-preview-image" alt="已通过结构检查的作品预览"><span class="preview-label">安全预览</span><button type="button" class="icon-button preview-close" id="clear-preview" aria-label="关闭预览">×</button></div>
+            <details class="placement-controls"><summary>位置与尺寸 <span id="placement-summary">自动放入我的区域</span></summary><div class="placement-grid"><label>X<input type="number" id="draft-x" min="0" step="1" value="0"></label><label>Y<input type="number" id="draft-y" min="0" step="1" value="0"></label><label>宽<input type="number" id="draft-width" min="1" step="1" value="800"></label><label>高<input type="number" id="draft-height" min="1" step="1" value="600"></label></div></details>
+            <div class="draft-message" id="draft-message" role="status" hidden></div>
+            <div class="draft-actions"><button class="button outlined" id="preview-button" type="button">检查与预览</button><button class="button primary" id="submit-button" type="submit" disabled>提交审核 <span aria-hidden="true">→</span></button></div>
+            <p class="submission-note" id="submission-note">你的提案只会先被你和房主看见。</p>
+          </form>
+          <div class="own-proposals"><div class="section-heading"><h3>我的提案</h3><span class="count" id="own-proposal-count">0</span></div><div id="own-proposal-list" class="own-proposal-list"><p class="empty-small">提交后的进度会出现在这里。</p></div></div>
+        </section>
+        <section class="review-panel" id="review-panel" hidden><div class="panel-intro"><div class="eyebrow">一起照看这张画布</div><h2 id="review-heading">待审作品</h2><p id="review-description">看看每一份新灵感，让合适的作品上画布。</p></div><div class="review-list" id="review-list"><div class="review-empty"><span aria-hidden="true">✓</span><h3>桌上暂时没有待审稿</h3><p>新提案来了，会出现在这里。</p></div></div></section>
+      </aside>
+    </main>
+  </div>
+
+  <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+  <dialog id="guide-dialog" class="guide-dialog"><div class="dialog-heading"><span class="eyebrow">带上自己的 Agent</span><button class="icon-button" id="close-guide" aria-label="关闭接入说明">×</button></div><h2>一句邀请，开始一起画。</h2><p>开好画室后，点击顶部「复制 Agent 邀请」，把完整文字交给支持本机命令或 MCP 的 Agent。</p><div class="guide-example">加入这个 AI 茶绘房间，在我的区域画一只戴贝雷帽的小鲸鱼，按房间规则提交。</div><ol><li>Agent 连接本机画室，读取区域和房规。</li><li>它制作受限的 SVG，检查并提交一块作品。</li><li>先审后发时，房主通过后作品才会公开。</li></ol><p class="form-hint">Steam 模式需要在这台电脑登录 Steam。绘图使用你自己的 Agent；这里无需填写模型 API 密钥。</p><button class="button primary full" id="guide-invite-button">复制当前画室邀请</button></dialog>
+</body>
+</html>

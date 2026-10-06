@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f4f5f1">
+  <title>茶绘 · 画板界面实验室</title>
+  <link rel="stylesheet" href="/demo.css">
+  <script src="/research.js" defer></script>
+  <script src="/demo.js" defer></script>
+</head>
+<body data-layout="desktop" data-hand="left">
+  <svg class="icon-definitions" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M20 4c-8-1-15 3-15 10a5 5 0 0 0 5 5c7 0 11-7 10-15Z"/><path d="m4 21 11-11"/></symbol>
+      <symbol id="i-brush" viewBox="0 0 24 24"><path d="m9 14 9-10a2 2 0 0 1 3 3L11 16M9 14l2 2"/><path d="M10 16c1 4-2 5-7 4 2-1 1-4 3-5 2-1 3 0 4 1Z"/></symbol>
+      <symbol id="i-select" viewBox="0 0 24 24"><path d="m5 3 14 10-7 1-3 7Z"/></symbol>
+      <symbol id="i-erase" viewBox="0 0 24 24"><path d="m4 12 9-9 8 8-9 9H7l-5-5a2 2 0 0 1 2-3ZM7 9l8 8M12 20h9"/></symbol>
+      <symbol id="i-rect" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/></symbol>
+      <symbol id="i-ellipse" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="7"/></symbol>
+      <symbol id="i-line" viewBox="0 0 24 24"><path d="M4 20 20 4"/><circle cx="4" cy="20" r="1.5"/><circle cx="20" cy="4" r="1.5"/></symbol>
+      <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 12V6a2 2 0 0 1 4 0v5-8a2 2 0 0 1 4 0v8-6a2 2 0 0 1 4 0v10c0 4-2 6-6 6h-2c-2 0-3-1-4-3l-4-6a2 2 0 0 1 3-2l1 2Z"/></symbol>
+      <symbol id="i-undo" viewBox="0 0 24 24"><path d="m9 5-5 5 5 5M4 10h10a6 6 0 0 1 0 12"/></symbol>
+      <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 5 5 5-5 5M20 10H10a6 6 0 0 0 0 12"/></symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 10 5-10 5L2 8ZM2 12l10 5 10-5M2 16l10 5 10-5"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3 21 21M10 5h2c6 0 10 7 10 7a19 19 0 0 1-4 4M6 6a22 22 0 0 0-4 6s4 7 10 7a12 12 0 0 0 5-1M10 10a3 3 0 0 0 4 4"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4M12 14v3"/></symbol>
+      <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0M12 14v3"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+      <symbol id="i-fit" viewBox="0 0 24 24"><path d="M9 3H3v6M15 3h6v6M3 15v6h6M21 15v6h-6"/><rect x="7" y="7" width="10" height="10" rx="1"/></symbol>
+      <symbol id="i-focus" viewBox="0 0 24 24"><path d="M3 8V3h5M16 3h5v5M3 16v5h5M16 21h5v-5"/></symbol>
+      <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M17 4a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 5v2"/></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM19 2v4M17 4h4"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 20V4m-6 6 6-6 6 6"/></symbol>
+      <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 4v16m-6-6 6 6 6-6"/></symbol>
+      <symbol id="i-screen" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+      <symbol id="i-tablet" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+      <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></symbol>
+    </defs>
+  </svg>
+
+  <nav class="lab-bar" aria-label="Demo 布局与考察">
+    <a href="/" class="lab-brand">茶绘<span>界面实验室</span></a>
+    <div class="layout-switch" role="group" aria-label="选择布局">
+      <button data-layout-choice="desktop" aria-pressed="true"><svg><use href="#i-screen"/></svg><span>桌面</span></button>
+      <button data-layout-choice="touch" aria-pressed="false"><svg><use href="#i-tablet"/></svg><span>触屏</span></button>
+    </div>
+    <div class="lab-links">
+      <button id="research-open">竞品考察 <span>↗</span></button>
+      <button id="design-open">布局思路</button>
+      <span class="demo-badge">UI DEMO</span>
+    </div>
+  </nav>
+
+  <div class="app" id="app">
+    <header class="app-bar">
+      <div class="room-title"><div class="brand-mark"><svg><use href="#i-leaf"/></svg></div><div><strong>深海夜市</strong><span>自由茶绘 · 示例房间</span></div></div>
+      <div class="canvas-switch" role="group" aria-label="画布视图">
+        <button data-view="draft" aria-pressed="true">我的草稿</button>
+        <button data-view="shared" aria-pressed="false">全场画布</button>
+      </div>
+      <div class="app-actions">
+        <button class="avatar-group" data-open-panel="room" aria-label="查看示例伙伴"><span class="avatar mint">茶</span><span class="avatar peach">鲸</span><span class="avatar lilac">珊</span></button>
+        <button class="icon-button" id="room-open" data-open-panel="room" aria-label="房间与伙伴" title="房间与伙伴"><svg><use href="#i-people"/></svg></button>
+        <button class="primary submit-button" id="submit-open"><svg><use href="#i-upload"/></svg><span>提交作品</span></button>
+      </div>
+    </header>
+
+    <main class="workspace" id="workspace">
+      <div class="context-bar" id="context-bar">
+        <div class="active-tool"><svg id="active-tool-icon"><use href="#i-brush"/></svg><strong id="active-tool-name">画笔</strong></div>
+        <button class="brush-preset" id="preset-switch" title="切换圆头画笔 / 荧光笔"><span class="brush-preview"></span><span id="preset-name">圆头画笔</span></button>
+        <label class="range-control size-control"><span>粗细</span><input type="range" id="brush-size" min="1" max="48" value="6"><output id="brush-size-value">6 px</output></label>
+        <label class="range-control opacity-control"><span>透明度</span><input type="range" id="brush-opacity" min="10" max="100" value="100"><output id="brush-opacity-value">100%</output></label>
+        <label class="fill-control"><input type="checkbox" id="shape-fill"><span>填充</span></label>
+        <span class="context-spacer"></span>
+        <button class="icon-button" id="undo" aria-label="撤销" title="撤销 Ctrl Z"><svg><use href="#i-undo"/></svg></button>
+        <button class="icon-button" id="redo" aria-label="重做" title="重做 Ctrl Shift Z"><svg><use href="#i-redo"/></svg></button>
+      </div>
+
+      <div class="tool-rail" role="toolbar" aria-label="绘画工具">
+        <button class="tool-button" data-tool="select" aria-label="选择 V" aria-pressed="false" title="选择 V"><svg><use href="#i-select"/></svg><span>选择</span><kbd>V</kbd></button>
+        <button class="tool-button" data-tool="brush" aria-label="画笔 B" aria-pressed="true" title="画笔 B"><svg><use href="#i-brush"/></svg><span>画笔</span><kbd>B</kbd></button>
+        <button class="tool-button" data-tool="erase" aria-label="对象橡皮 E" aria-pressed="false" title="对象橡皮 E"><svg><use href="#i-erase"/></svg><span>橡皮</span><kbd>E</kbd></button>
+        <div class="tool-separator"></div>
+        <button class="tool-button" data-tool="rect" aria-label="矩形 R" aria-pressed="false" title="矩形 R"><svg><use href="#i-rect"/></svg><span>矩形</span><kbd>R</kbd></button>
+        <button class="tool-button phone-shapes" id="shape-open" aria-label="选择形状工具" aria-expanded="false"><svg><use href="#i-rect"/></svg><span>形状</span></button>
+        <button class="tool-button extra-shape" data-tool="ellipse" aria-label="椭圆 O" aria-pressed="false" title="椭圆 O"><svg><use href="#i-ellipse"/></svg><span>椭圆</span><kbd>O</kbd></button>
+        <button class="tool-button extra-shape" data-tool="line" aria-label="直线 L" aria-pressed="false" title="直线 L"><svg><use href="#i-line"/></svg><span>直线</span><kbd>L</kbd></button>
+        <button class="tool-button" data-tool="pan" aria-label="平移 H" aria-pressed="false" title="平移 H / 空格拖动"><svg><use href="#i-hand"/></svg><span>平移</span><kbd>H</kbd></button>
+        <div class="tool-separator"></div>
+        <button class="color-button" id="color-open" aria-label="画笔与所选对象颜色" title="颜色"><span id="current-color"></span></button>
+      </div>
+
+      <section class="canvas-area" id="canvas-area" aria-label="画布工作区">
+        <div class="task-banner" id="task-banner" hidden><svg><use href="#i-spark"/></svg><span>本轮任务 · 画出在深海夜市喝茶的小鲸鱼</span><strong>绘画阶段 · 演示</strong></div>
+        <div class="canvas-caption"><span class="status-dot"></span><span id="canvas-caption">我的草稿</span><span class="paper-dimensions">1040 × 720</span></div>
+        <div id="paper">
+          <svg id="board" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 720" aria-label="可编辑的 SVG 画布">
+            <defs>
+              <linearGradient id="sea-light" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e4f1e9"/><stop offset="1" stop-color="#c4dfd1"/></linearGradient>
+              <linearGradient id="roof-light" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#73998d"/><stop offset="1" stop-color="#426e63"/></linearGradient>
+            </defs>
+            <g id="art"></g>
+            <g id="gesture-preview" pointer-events="none"></g>
+            <g id="selection-overlay"></g>
+          </svg>
+        </div>
+        <div class="selection-actions" id="selection-actions" hidden>
+          <span id="selection-name">已选对象</span>
+          <button class="icon-button" id="duplicate-object" aria-label="复制所选对象" title="复制 Ctrl D"><svg><use href="#i-copy"/></svg></button>
+          <button class="icon-button" id="delete-object" aria-label="删除所选对象" title="删除 Delete"><svg><use href="#i-trash"/></svg></button>
+          <button class="icon-button" id="clear-selection" aria-label="取消选择"><svg><use href="#i-close"/></svg></button>
+        </div>
+        <div class="canvas-bottom">
+          <span class="gesture-hint" id="gesture-hint">B 画笔 · V 选择 · 空格平移 · 滚轮缩放</span>
+          <div class="zoom-controls"><button class="icon-button" id="zoom-out" aria-label="缩小画布"><svg><use href="#i-minus"/></svg></button><button id="zoom-value" title="适应画布">100%</button><button class="icon-button" id="zoom-in" aria-label="放大画布"><svg><use href="#i-plus"/></svg></button><span class="small-divider"></span><button class="icon-button" id="fit" aria-label="适应画布" title="适应画布"><svg><use href="#i-fit"/></svg></button></div>
+        </div>
+      </section>
+
+      <div class="panel-launchers" aria-label="打开面板">
+        <button class="icon-button" data-open-panel="layers" aria-label="图层" title="图层"><svg><use href="#i-layers"/></svg></button>
+        <button class="icon-button" data-open-panel="agent" aria-label="Agent 助手" title="Agent 助手"><svg><use href="#i-spark"/></svg></button>
+        <button class="icon-button" id="focus-toggle" aria-label="专注画布" aria-pressed="false" title="专注画布 Tab"><svg><use href="#i-focus"/></svg></button>
+      </div>
+      <button class="panel-scrim" id="panel-scrim" aria-label="关闭面板" hidden></button>
+      <aside class="side-panel" id="side-panel" aria-label="图层、房间与助手">
+        <div class="panel-tabs" role="tablist" aria-label="辅助面板">
+          <button data-panel="layers" role="tab" aria-selected="true">图层</button>
+          <button data-panel="room" role="tab" aria-selected="false">房间</button>
+          <button data-panel="agent" role="tab" aria-selected="false">Agent</button>
+          <button class="icon-button panel-close" id="panel-close" aria-label="收起面板"><svg><use href="#i-close"/></svg></button>
+        </div>
+        <section class="panel-content" data-panel-content="layers" role="tabpanel">
+          <div class="panel-heading"><h2>我的图层</h2><button class="icon-button" id="add-layer" aria-label="新建图层" title="新建图层"><svg><use href="#i-plus"/></svg></button></div>
+          <div class="layer-list" id="layer-list"></div>
+          <div class="layer-properties">
+            <label>图层名称<input id="layer-name" value="我的笔画" maxlength="32"></label>
+            <div class="layer-order"><span>排列图层</span><button class="icon-button" id="layer-up" aria-label="图层上移"><svg><use href="#i-arrow-up"/></svg></button><button class="icon-button" id="layer-down" aria-label="图层下移"><svg><use href="#i-arrow-down"/></svg></button></div>
+          </div>
+          <div class="panel-footnote"><svg><use href="#i-check"/></svg><div><strong id="save-status">已保存在本机</strong><span>草稿在提交前仅自己可见</span></div></div>
+          <button class="text-button export-button" id="export-svg"><svg><use href="#i-download"/></svg>导出 SVG</button>
+        </section>
+        <section class="panel-content" data-panel-content="room" role="tabpanel" hidden>
+          <div class="panel-heading"><h2>同桌伙伴</h2><span class="quiet-label">演示数据</span></div>
+          <div class="person"><span class="avatar mint">茶</span><div><strong>茶茶 · 我</strong><span>正在画鲸鱼茶摊</span></div><span class="person-state">绘画中</span></div>
+          <div class="person"><span class="avatar peach">鲸</span><div><strong>小鲸鱼</strong><span>正在画夜市灯笼</span></div><span class="person-state">绘画中</span></div>
+          <div class="person"><span class="avatar lilac">珊</span><div><strong>珊瑚同学</strong><span>已提交一份作品</span></div><span class="person-state">已提交</span></div>
+          <label class="room-mode-label">预览玩法<select id="game-mode"><option value="free">自由茶绘</option><option value="telephone">图文传话</option><option value="guess">你画我猜</option></select></label>
+          <div class="room-note">房间设置只在这里展开。绘画时保留当前任务和必要状态。</div>
+          <button class="secondary wide-button" id="copy-demo-link">复制 Demo 邀请</button>
+          <div class="review-summary"><h3>发布流程</h3><p id="review-status">还没有提交作品</p><button class="secondary wide-button" id="simulate-approve" disabled>模拟房主审核通过</button></div>
+        </section>
+        <section class="panel-content" data-panel-content="agent" role="tabpanel" hidden>
+          <div class="panel-heading"><h2>和 Agent 一起画</h2><span class="quiet-label">流程演示</span></div>
+          <div class="agent-card"><div class="agent-orb"><svg><use href="#i-spark"/></svg></div><h3>你画轮廓，它补细节</h3><p>从画板打开助手，讨论当前作品。生成的对象先进入可编辑草稿。</p></div>
+          <label class="agent-prompt-label">试试给夜市加点东西<textarea id="agent-prompt" rows="3" placeholder="例如：加一些小气泡"></textarea></label>
+          <button class="primary wide-button" id="agent-demo-add"><svg><use href="#i-spark"/></svg>演示：添加一组气泡</button>
+          <p class="room-note">此按钮使用固定 SVG 示例。正式接入时沿用项目的 MCP / CLI 绘图接口。</p>
+        </section>
+      </aside>
+      <button class="focus-return secondary" id="focus-return" hidden><svg><use href="#i-focus"/></svg>退出专注</button>
+    </main>
+    <footer class="app-status"><span><span class="status-dot"></span><span id="footer-save">本地草稿已保存</span></span><span id="footer-message">点击工具即可画画，选中对象即可修改</span><button id="hand-switch" title="切换侧边工具位置">工具放右侧</button></footer>
+  </div>
+
+  <section class="color-popover" id="color-popover" role="dialog" aria-label="颜色" hidden>
+    <div class="popover-heading"><strong>颜色</strong><button class="icon-button" id="color-close" aria-label="关闭颜色"><svg><use href="#i-close"/></svg></button></div>
+    <div class="color-large"><input type="color" id="custom-color" value="#416f64" aria-label="选择颜色"><span id="color-hex">#416F64</span></div>
+    <span class="quiet-label">深海夜市配色</span><div class="swatches" id="swatches"></div>
+    <p>选中对象时直接改色</p>
+  </section>
+  <section class="shape-popover" id="shape-popover" role="dialog" aria-label="形状工具" hidden>
+    <button data-shape="rect"><svg><use href="#i-rect"/></svg>矩形</button>
+    <button data-shape="ellipse"><svg><use href="#i-ellipse"/></svg>椭圆</button>
+    <button data-shape="line"><svg><use href="#i-line"/></svg>直线</button>
+    <label><input type="checkbox" id="shape-menu-fill">实心填充</label>
+  </section>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <dialog class="submit-dialog" id="submit-dialog">
+    <div class="dialog-top"><span class="eyebrow">把作品带到同桌面前</span><button class="icon-button" data-close-dialog="submit-dialog" aria-label="关闭提交"><svg><use href="#i-close"/></svg></button></div>
+    <h2>提交这份作品</h2><div class="submit-preview" id="submit-preview"></div>
+    <label>作品名称<input id="artwork-name" value="鲸鱼的深海茶摊" maxlength="60"></label>
+    <p>审核通过后，作品会出现在全场画布。当前是本地流程演示。</p>
+    <div class="dialog-actions"><button class="secondary" data-close-dialog="submit-dialog">继续画</button><button class="primary" id="submit-confirm">提交到演示队列</button></div>
+  </dialog>
+
+  <dialog class="research-dialog" id="research-dialog">
+    <div class="dialog-top"><span class="eyebrow">官方手册考察 · 2026.10.05</span><button class="icon-button" data-close-dialog="research-dialog" aria-label="关闭考察"><svg><use href="#i-close"/></svg></button></div>
+    <h1>让工具围绕画布，<br>让操作靠近画笔。</h1>
+    <p class="research-intro">考察 5 款绘画软件的界面组织。下方是根据官方手册重新绘制的布局示意，点击卡片可以查看分析与原始资料。</p>
+    <div class="research-cards" id="research-cards"></div>
+    <div class="research-detail" id="research-detail"></div>
+    <div class="research-conclusions"><h2>茶绘 Demo 采用的 4 个决定</h2><div><p><strong>常用工具一眼可见</strong><span>画笔、选择、橡皮和形状直接点击，当前工具明确高亮。</span></p><p><strong>改完立即生效</strong><span>颜色、粗细与透明度统一直接应用，不再寻找确认按钮。</span></p><p><strong>一块画布，两个视图</strong><span>草稿和全场画布在同一位置切换，私有与发布状态明确标记。</span></p><p><strong>触屏采用另一种布局</strong><span>加大触控目标，图层按需打开，支持双指缩放与平移。</span></p></div></div>
+    <a class="report-link" href="/research.md" target="_blank" rel="noopener">查看完整考察与落地记录 ↗</a>
+  </dialog>
+  <dialog class="design-dialog" id="design-dialog">
+    <div class="dialog-top"><span class="eyebrow">从考察到茶绘</span><button class="icon-button" data-close-dialog="design-dialog" aria-label="关闭布局思路"><svg><use href="#i-close"/></svg></button></div>
+    <h2>把位置留给画布</h2>
+    <div class="design-steps"><p><span>01</span><strong>画板始终是主场</strong>房间、Agent、游戏设置放进辅助面板。进入即可画，不必先新建草稿。</p><p><span>02</span><strong>工具与参数相邻</strong>桌面工具放左侧，参数放上方，图层放右侧。触屏把参数移到下方，图层变成临时面板。</p><p><span>03</span><strong>对象直接操作</strong>选择后拖动、拉角点缩放、拖旋转柄旋转；颜色和透明度直接修改，复制与删除靠近选择状态。</p><p><span>04</span><strong>流程清楚，来源诚实</strong>绘图与 SVG 导出可用；人物、Agent 添加气泡、提交和审核是本地演示，尚未连接 Steam 房间。</p></div>
+    <div class="shortcut-sheet"><h3>可以实际尝试</h3><p>B 画笔 · V 选择 · E 对象橡皮 · R 矩形 · O 椭圆 · L 直线 · H 平移</p><p>Ctrl Z 撤销 · Ctrl Shift Z 重做 · Ctrl D 复制 · Delete 删除 · Esc 取消</p><p>鼠标滚轮缩放，空格拖动画布；触屏双指缩放 / 平移，双指轻点撤销。Tab 进入专注画布。</p></div>
+  </dialog>
+</body>
+</html>

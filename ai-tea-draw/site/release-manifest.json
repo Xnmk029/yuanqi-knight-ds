@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "version": "0.4.0",
+  "platform": "windows-x64",
+  "status": "local-build",
+  "variants": {
+    "lite": {
+      "file": "ai-tea-draw-0.4.0-windows-x64-lite.zip",
+      "bytes": 3166874,
+      "sha256": "0ff79456a62ef47aa57acc4794ba35712a2a6551bf0537cc972c886357667e00"
+    },
+    "portable": {
+      "file": "ai-tea-draw-0.4.0-windows-x64-portable.zip",
+      "bytes": 38350054,
+      "sha256": "a5e9d5e9314129c488a5ed6f6eedeed7fa0703740a54a23adec9dceba0ea4d6b"
+    }
+  }
+}
